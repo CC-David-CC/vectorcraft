@@ -1275,6 +1275,38 @@ fn shape_arc_closed_along_y_closes_through_the_top_left_corner() {
     assert!((area - std::f64::consts::FRAC_PI_4).abs() < 0.01, "{area}");
 }
 
+/// A spiral dragged out with Alt pressed part way gets more segments as its outer end moves out,
+/// and one dragged with Ctrl/Cmd pressed part way gets the decay that keeps its inner end's
+/// distance from the center; the Spiral tool keeps both for the next spiral.
+#[test]
+fn spiral_drags_with_alt_and_ctrl_change_its_segments_and_decay() {
+    let mut s = session();
+    let v = view();
+    let spiral = |s: &mut Session, m: Mods, to: (f64, f64)| {
+        s.pointer(&PointerEvent::new(PointerKind::Down, 100.0, 100.0), v).unwrap();
+        s.pointer(&PointerEvent::new(PointerKind::Drag, 200.0, 100.0), v).unwrap();
+        s.pointer(&PointerEvent::new(PointerKind::Drag, 200.0, 100.0).with_mods(m), v).unwrap();
+        s.pointer(&PointerEvent::new(PointerKind::Drag, to.0, to.1).with_mods(m), v).unwrap();
+        s.pointer(&PointerEvent::new(PointerKind::Up, to.0, to.1).with_mods(m), v).unwrap();
+        let sp = paths(s).last().unwrap().1.subpaths[0].clone();
+        (sp.anchors.len(), sp.anchors.last().unwrap().p)
+    };
+    s.select_tool("spiral", v).unwrap();
+    let undo = undo_steps(&s);
+    // Alt from a radius of 100 to 200: 10 segments become 13, the outer end at the pointer.
+    let (anchors, outer) = spiral(&mut s, Mods { alt: true, ..Mods::default() }, (300.0, 100.0));
+    assert_eq!(anchors, 14);
+    assert!(near(outer, Point::new(300.0, 100.0)), "{outer:?}");
+    assert_eq!(s.tool_options()["segments"], json!(13));
+    // Ctrl/Cmd from 100 to 50: the decay rises from 80 % to 80 × 2^(1/13) %.
+    let (anchors, outer) = spiral(&mut s, Mods { cmd: true, ..Mods::default() }, (150.0, 100.0));
+    assert_eq!(anchors, 14);
+    assert!(near(outer, Point::new(150.0, 100.0)), "{outer:?}");
+    let decay = s.tool_options()["decay"].as_f64().unwrap();
+    assert!((decay - 80.0 * 2f64.powf(1.0 / 13.0)).abs() < 1e-9, "{decay}");
+    assert_eq!(undo_steps(&s) - undo, 2, "one undo step a spiral");
+}
+
 /// The children of the grid a `shape.rectangularGrid` / `shape.polarGrid` call made, bottom first.
 fn grid(s: &mut Session, cmd: &str, p: serde_json::Value) -> Vec<std::sync::Arc<vectorcraft_doc::Node>> {
     let id = NodeId(s.execute(cmd, &p).unwrap()["id"].as_u64().unwrap());

@@ -5,7 +5,9 @@
 //! start point and the dragged corner snap to Smart Guides ([`DrawSnap`]), hovering too.
 //! While dragging, ↑/↓ change the arc's slope, the spiral's segments, the grid rows or the
 //! concentric dividers; ←/→ change grid columns / radial dividers. C switches the arc between open
-//! and closed, and F switches its base between the X and Y axes.
+//! and closed, and F switches its base between the X and Y axes. While a spiral is dragged out, Alt
+//! and Ctrl/Cmd keep its inner end at the distance from the center it had when the key went down as
+//! the outer end follows the pointer: Alt adds or removes segments, and Ctrl/Cmd changes the decay.
 
 use serde_json::{Value, json};
 use vectorcraft_geom::Point;
@@ -33,6 +35,9 @@ pub struct FamilyTool {
     pub decay: f64,
     pub segments: u32,
     pub clockwise: bool,
+    /// The natural logarithm of the radius of the spiral's inner end, held while Alt or Ctrl/Cmd
+    /// is down in a drag.
+    spiral_end: Option<f64>,
     /// Rows / concentric dividers.
     pub rows: u32,
     /// Columns / radial dividers.
@@ -75,6 +80,7 @@ impl FamilyTool {
             decay: 80.0,
             segments: 10,
             clockwise: true,
+            spiral_end: None,
             rows: 5,
             columns: 5,
             skew: [0.0; 2],
@@ -105,6 +111,39 @@ impl FamilyTool {
 
     fn is_grid(&self) -> bool {
         matches!(self.id, "rectangularGrid" | "polarGrid")
+    }
+
+    /// The natural logarithm of the radius of the inner end of a spiral of outer radius `r` drawn
+    /// with the tool's decay and segments (a logarithm, so that a low decay with many segments does
+    /// not round to 0). The decay ratio is clamped to 0.05…0.9999 as `shapes::spiral` clamps it.
+    fn spiral_inner_end_ln(&self, r: f64) -> f64 {
+        r.ln() + f64::from(self.segments) * (self.decay / 100.0).clamp(0.05, 0.9999).ln()
+    }
+
+    /// Alt or Ctrl/Cmd in a spiral drag from `start` to `p`: the inner end keeps the distance from
+    /// the center it had when the key went down while the outer end follows the pointer. With
+    /// Ctrl/Cmd the decay changes to fit (within 5…99.99 %, the decays `shapes::spiral` draws);
+    /// with Alt alone the segments change to the nearest whole number that fits (within 2…1000).
+    /// The new values stay once the key is let go.
+    fn hold_spiral_end(&mut self, start: Point, p: Point, m: Mods) {
+        let r = p.distance(start).max(0.01);
+        match (m.cmd || m.alt, self.spiral_end) {
+            (true, None) => self.spiral_end = Some(self.spiral_inner_end_ln(r)),
+            (false, Some(_)) => self.spiral_end = None,
+            _ => {}
+        }
+        let Some(end) = self.spiral_end.filter(|e| e.is_finite()) else { return };
+        if m.cmd {
+            let ratio = ((end - r.ln()) / f64::from(self.segments)).exp();
+            if ratio.is_finite() {
+                self.decay = (ratio * 100.0).clamp(5.0, 99.99);
+            }
+        } else {
+            let winds = (r.ln() - end) / -(self.decay / 100.0).clamp(0.05, 0.9999).ln();
+            if winds.is_finite() {
+                self.segments = winds.round().clamp(2.0, 1000.0) as u32;
+            }
+        }
     }
 
     /// A grid's options a drag draws with: its dividers, skews and switches (the Default Size and
@@ -187,6 +226,7 @@ impl Tool for FamilyTool {
                 self.start = Some(p);
                 self.last = p;
                 self.began = false;
+                self.spiral_end = None;
                 vec![]
             }
             PointerKind::Drag => {
@@ -204,6 +244,9 @@ impl Tool for FamilyTool {
                     self.began = true;
                     out.push(Action::Begin(self.label().into()));
                 }
+                if self.id == "spiral" {
+                    self.hold_spiral_end(s, ev.pos, ev.mods);
+                }
                 let (c, v) = self.command_at(s, ev.pos, ev.mods, cx.constrain_angle);
                 out.push(Action::Preview(c, v));
                 out
@@ -211,6 +254,7 @@ impl Tool for FamilyTool {
             PointerKind::Up => {
                 let Some(s) = self.start.take() else { return vec![] };
                 self.snap.clear();
+                self.spiral_end = None;
                 if std::mem::take(&mut self.began) { vec![Action::Commit] } else { vec![Action::Dialog(self.id.into(), json!({"x": s.x, "y": s.y}))] }
             }
             _ => vec![],
@@ -262,11 +306,16 @@ impl Tool for FamilyTool {
             _ => false,
         };
         if changed {
+            // An arrow with Alt or Ctrl/Cmd still held: the held inner end moves with the new segment count.
+            if self.spiral_end.is_some() {
+                self.spiral_end = Some(self.spiral_inner_end_ln(self.last.distance(s).max(0.01)));
+            }
             let (c, v) = self.command_at(s, self.last, self.mods, cx.constrain_angle);
             vec![Action::Preview(c, v)]
         } else if key == ToolKey::Escape {
             self.start = None;
             self.began = false;
+            self.spiral_end = None;
             self.snap.clear();
             vec![Action::Cancel]
         } else {
@@ -459,6 +508,69 @@ mod tests {
                 "fillArc": false,
             })
         );
+    }
+
+    /// While a spiral is dragged out, Alt and Ctrl/Cmd keep its inner end at the distance from the
+    /// center it had when the key went down as the outer end follows the pointer: Alt adds or
+    /// removes segments and Ctrl/Cmd changes the decay. The new values stay once the key is let go,
+    /// and for the next spiral. Both keys work with the lowest decay and many segments.
+    #[test]
+    fn spiral_drag_alt_changes_its_segments_and_ctrl_its_decay() {
+        let (d, _) = doc_with_rect();
+        let s = Selection::default();
+        let p = paint();
+        let mut cx = cx(&d, &s, &p);
+        cx.smart_guides = false;
+        let alt = Mods { alt: true, ..Mods::default() };
+        let ctrl = Mods { cmd: true, ..Mods::default() };
+        let spiral = |a: Vec<Action>| match a.last() {
+            Some(Action::Preview(c, v)) if c == "shape.spiral" => {
+                (v["radius"].as_f64().unwrap(), v["decay"].as_f64().unwrap(), v["segments"].as_u64().unwrap())
+            }
+            _ => panic!("{a:?}"),
+        };
+        let mut t = FamilyTool::new("spiral");
+        t.pointer(&cx, &PointerEvent::new(PointerKind::Down, 100.0, 100.0));
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 200.0, 100.0))), (100.0, 80.0, 10));
+        // Alt: twice the radius adds ln 2 / ln 1.25 ≈ 3.1 segments, half of it takes them away.
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 200.0, 100.0).with_mods(alt))), (100.0, 80.0, 10));
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 300.0, 100.0).with_mods(alt))), (200.0, 80.0, 13));
+        // ↑ with Alt held adds one, and the held inner end moves with it.
+        assert_eq!(spiral(t.key(&cx, ToolKey::Up, alt)).2, 14);
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 300.0, 100.0).with_mods(alt))).2, 14);
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 150.0, 100.0).with_mods(alt))), (50.0, 80.0, 8));
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 101.0, 100.0).with_mods(alt))).2, 2, "at least two");
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 150.0, 100.0).with_mods(alt))).2, 8);
+        // Let go: the eight segments stay as the radius follows the pointer again.
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 200.0, 100.0))), (100.0, 80.0, 8));
+        // Ctrl/Cmd: the decay fits the held inner end, 80 % × (100 / r)^(1/8).
+        t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 200.0, 100.0).with_mods(ctrl));
+        let (r, decay, n) = spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 150.0, 100.0).with_mods(ctrl)));
+        assert!((r, n) == (50.0, 8) && (decay - 80.0 * 2f64.powf(1.0 / 8.0)).abs() < 1e-9, "{r} {decay} {n}");
+        let (_, decay, _) = spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 400.0, 100.0).with_mods(ctrl)));
+        assert!((decay - 80.0 * (1.0f64 / 3.0).powf(1.0 / 8.0)).abs() < 1e-9, "{decay}");
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 100.5, 100.0).with_mods(ctrl))).1, 99.99, "at most 99.99 %");
+        let (_, decay, _) = spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 300.0, 100.0).with_mods(ctrl)));
+        assert!((decay - 80.0 * 0.5f64.powf(1.0 / 8.0)).abs() < 1e-9, "{decay}");
+        // Let go: the decay stays, and the spiral drawn next keeps both.
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 250.0, 100.0))), (150.0, decay, 8));
+        assert_eq!(t.pointer(&cx, &PointerEvent::new(PointerKind::Up, 250.0, 100.0)), vec![Action::Commit]);
+        assert_eq!((t.options()["decay"].as_f64(), t.options()["segments"].clone()), (Some(decay), json!(8)));
+        t.pointer(&cx, &PointerEvent::new(PointerKind::Down, 100.0, 100.0));
+        let (_, d2, n2) = spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 100.0, 140.0).with_mods(alt)));
+        assert_eq!((d2, n2), (decay, 8), "a new drag holds the end anew");
+        // 5 % and 300 segments: an inner radius of 100 × 0.05^300 is below the smallest f64.
+        let mut t = FamilyTool::new("spiral");
+        t.set_option("decay", &json!(5.0));
+        t.set_option("segments", &json!(300));
+        t.pointer(&cx, &PointerEvent::new(PointerKind::Down, 100.0, 100.0));
+        t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 200.0, 100.0).with_mods(ctrl));
+        let (_, decay, _) = spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 150.0, 100.0).with_mods(ctrl)));
+        assert!((decay - 5.0 * 2f64.powf(1.0 / 300.0)).abs() < 1e-9, "{decay}");
+        t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 150.0, 100.0));
+        // Alt: 200 times the radius adds ln 200 / ln (100 / decay) ≈ 1.8 segments.
+        t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 120.0, 100.0).with_mods(alt));
+        assert_eq!(spiral(t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 4100.0, 100.0).with_mods(alt))).2, 302);
     }
 
     #[test]
