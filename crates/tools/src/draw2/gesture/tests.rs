@@ -1106,6 +1106,99 @@ fn eraser_and_knife_exec_on_release() {
     assert!(matches!(&a[0], Action::Exec(c, v) if c == "path.knife" && v["points"].as_array().unwrap().len() == 3));
 }
 
+/// The points of the Knife's release command, or of its drag overlay.
+fn knife_points(acts: &[Action]) -> Vec<(f64, f64)> {
+    let Some(Action::Exec(c, v)) = acts.first() else { panic!("{acts:?}") };
+    assert_eq!(c, "path.knife");
+    v["points"].as_array().unwrap().iter().map(|q| (q[0].as_f64().unwrap(), q[1].as_f64().unwrap())).collect()
+}
+
+fn overlay_points(t: &GestureTool, cx: &ToolContext) -> Vec<(f64, f64)> {
+    let o = t.overlays(cx);
+    let Some(Overlay::Path { path, dashed: true, .. }) = o.last() else { panic!("{o:?}") };
+    path.elements().iter().filter_map(|e| e.end_point()).map(|q| (q.x, q.y)).collect()
+}
+
+/// With Alt held at the press, or pressed before the drag has moved, a wavy Knife drag shows and
+/// cuts along the straight line from the press point to the pointer, whatever Alt does after.
+/// Alt pressed once the drag has moved leaves the cut freehand, and a straight cut taken back to
+/// the press point sends no command.
+#[test]
+fn knife_alt_cuts_along_a_straight_line() {
+    let (d, _) = doc_with_rect();
+    let s = Selection::default();
+    let p = paint();
+    let cx = cx(&d, &s, &p);
+    let alt = Mods { alt: true, ..Default::default() };
+    let none = Mods::default();
+    let ev = |k, x, y, m| PointerEvent::new(k, x, y).with_mods(m);
+    let mut t = GestureTool::new("knife");
+    t.pointer(&cx, &ev(PointerKind::Down, 50.0, 150.0, alt));
+    t.pointer(&cx, &ev(PointerKind::Drag, 100.0, 120.0, alt));
+    t.pointer(&cx, &ev(PointerKind::Drag, 150.0, 190.0, alt));
+    assert_eq!(overlay_points(&t, &cx), vec![(50.0, 150.0), (150.0, 190.0)]);
+    // Alt let go: the cut stays straight.
+    let a = t.pointer(&cx, &ev(PointerKind::Up, 250.0, 160.0, none));
+    assert_eq!(knife_points(&a), vec![(50.0, 150.0), (250.0, 160.0)]);
+    // Alt pressed while the pointer stands still at the press point.
+    t.pointer(&cx, &ev(PointerKind::Down, 50.0, 150.0, none));
+    t.pointer(&cx, &ev(PointerKind::Drag, 50.0, 150.0, alt));
+    t.pointer(&cx, &ev(PointerKind::Drag, 100.0, 120.0, alt));
+    let a = t.pointer(&cx, &ev(PointerKind::Up, 250.0, 160.0, alt));
+    assert_eq!(knife_points(&a), vec![(50.0, 150.0), (250.0, 160.0)]);
+    // Alt pressed after the drag moved: the cut follows the drag.
+    t.pointer(&cx, &ev(PointerKind::Down, 50.0, 150.0, none));
+    t.pointer(&cx, &ev(PointerKind::Drag, 100.0, 120.0, none));
+    t.pointer(&cx, &ev(PointerKind::Drag, 150.0, 190.0, alt));
+    let a = t.pointer(&cx, &ev(PointerKind::Up, 250.0, 160.0, alt));
+    assert_eq!(knife_points(&a), vec![(50.0, 150.0), (100.0, 120.0), (150.0, 190.0), (250.0, 160.0)]);
+    // Back at the press point the line goes, and the release cuts nothing.
+    t.pointer(&cx, &ev(PointerKind::Down, 50.0, 150.0, alt));
+    t.pointer(&cx, &ev(PointerKind::Drag, 150.0, 190.0, alt));
+    t.pointer(&cx, &ev(PointerKind::Drag, 50.2, 150.0, alt));
+    assert!(t.overlays(&cx).is_empty());
+    assert_eq!(t.pointer(&cx, &ev(PointerKind::Up, 50.2, 150.0, alt)), vec![]);
+}
+
+/// With Shift and Alt held, the Knife's straight cut keeps to 45° steps from the Constrain Angle
+/// and is as long as the line to the pointer. Shift is read on each drag event: when Shift is let
+/// go, the line follows the pointer again. With Shift alone, the cut follows the drag.
+#[test]
+fn knife_shift_alt_cuts_at_45_degree_steps() {
+    let (d, _) = doc_with_rect();
+    let s = Selection::default();
+    let p = paint();
+    let mut cx = cx(&d, &s, &p);
+    let shift_alt = Mods { shift: true, alt: true, ..Default::default() };
+    let alt = Mods { alt: true, ..Default::default() };
+    let angle = |q: (f64, f64), from: (f64, f64)| (-(q.1 - from.1)).atan2(q.0 - from.0).to_degrees();
+    let mut t = GestureTool::new("knife");
+    // A wavy drag heading up and right at about 40°: a cut at 45°, as long as the drag.
+    let acts = drag_held(&mut t, &cx, &[(0.0, 0.0), (30.0, -10.0), (50.0, -60.0), (100.0, -84.0)], shift_alt);
+    let cut = knife_points(acts.last().unwrap());
+    assert_eq!(cut.len(), 2, "{cut:?}");
+    assert_eq!(cut[0], (0.0, 0.0));
+    assert!((angle(cut[1], (0.0, 0.0)) - 45.0).abs() < 1e-9, "{cut:?}");
+    assert!((cut[1].0.hypot(cut[1].1) - 100f64.hypot(84.0)).abs() < 1e-9, "{cut:?}");
+    // Shift goes down mid-drag and up again: the overlay steps, then follows the pointer.
+    t.pointer(&cx, &PointerEvent::new(PointerKind::Down, 0.0, 0.0).with_mods(alt));
+    t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 100.0, -84.0).with_mods(shift_alt));
+    let shown = overlay_points(&t, &cx);
+    assert!((angle(shown[1], (0.0, 0.0)) - 45.0).abs() < 1e-9, "{shown:?}");
+    t.pointer(&cx, &PointerEvent::new(PointerKind::Drag, 100.0, -80.0).with_mods(alt));
+    assert_eq!(overlay_points(&t, &cx), vec![(0.0, 0.0), (100.0, -80.0)]);
+    let a = t.pointer(&cx, &PointerEvent::new(PointerKind::Up, 100.0, -84.0).with_mods(shift_alt));
+    assert!((angle(knife_points(&a)[1], (0.0, 0.0)) - 45.0).abs() < 1e-9, "{a:?}");
+    // The steps turn with the Constrain Angle: at 30°, a drag at 40° gives 30°.
+    cx.constrain_angle = 30.0;
+    let acts = drag_held(&mut t, &cx, &[(10.0, 10.0), (110.0, -74.0)], shift_alt);
+    let cut = knife_points(acts.last().unwrap());
+    assert!((angle(cut[1], (10.0, 10.0)) - 30.0).abs() < 1e-9, "{cut:?}");
+    // Shift alone: the cut follows the drag.
+    let acts = drag_held(&mut t, &cx, &[(0.0, 0.0), (30.0, -10.0), (50.0, -60.0)], Mods { shift: true, ..Default::default() });
+    assert_eq!(knife_points(acts.last().unwrap()).len(), 3);
+}
+
 /// The Eraser's Angle and Roundness (Eraser Tool Options) go with its stroke, kept within
 /// −180–180° and 1–100%; while it drags, a tip that is not round shows the outline of the area
 /// it covers, and a round one the drag as wide as the tip.

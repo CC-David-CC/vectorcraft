@@ -14,6 +14,9 @@
 //! collect the drag polyline (shown as an overlay) and run one command on release. With Shift held, the Blob Brush's points stay on the horizontal or
 //! vertical line through the press point. Alt held at the press, or before the Blob Brush's drag
 //! has moved, switches the Blob Brush to the Smooth tool: the drag smooths the selected paths.
+//! Alt held at the press, or pressed before the Knife's drag has moved, makes the Knife cut along
+//! the straight line from the press point to the pointer, at 45° steps from the Constrain Angle
+//! while Shift is held.
 
 use serde_json::{Value, json};
 use vectorcraft_doc::{NodeId, NodeKind};
@@ -89,11 +92,12 @@ pub struct GestureTool {
     /// The pointer has moved from the press point, by any distance (a move too short to add a
     /// point counts).
     moved: bool,
-    /// Active Pencil drag draws a straight line (Shift or Alt held at the press): the stroke is
-    /// the press point and the pointer.
+    /// Active Pencil drag draws a straight line (Shift or Alt held at the press), or active Knife
+    /// drag cuts along one (Alt held at the press or before the drag moved): the stroke is the
+    /// press point and the pointer.
     straight: bool,
-    /// The straight line is Alt's: the pointer is not constrained to 45° steps, and the line's end
-    /// snaps to Smart Guides as a stroke's end does.
+    /// The straight line is not constrained to 45° steps: the Pencil's Alt line, whose end snaps to
+    /// Smart Guides as a stroke's end does, or the Knife's line while Shift is up.
     unconstrained: bool,
     /// Axis selected during the current uninterrupted Shift interval, in degrees.
     shift_line: Option<f64>,
@@ -199,6 +203,23 @@ impl GestureTool {
     /// during a drag that has not moved from the press point yet.
     fn blob_alt_smooths(&self, m: Mods) -> bool {
         self.id == "blobBrush" && m.alt && !self.moved
+    }
+
+    /// Would Alt held now make the Knife cut along a straight line? It does at the press, and
+    /// during a drag that has not moved from the press point yet.
+    fn knife_alt_straight(&self, m: Mods) -> bool {
+        self.id == "knife" && m.alt && !self.moved
+    }
+
+    /// Alt starts a straight Knife cut before the drag moves. While it cuts along a straight line,
+    /// Shift keeps the line to 45° steps; without Shift, the line follows the pointer.
+    fn knife_shift(&mut self, m: Mods) {
+        if self.knife_alt_straight(m) {
+            self.straight = true;
+        }
+        if self.id == "knife" && self.straight {
+            self.unconstrained = !m.shift;
+        }
     }
 
     /// Constrain the Pencil line or the current Blob Brush sample. Blob Brush chooses an
@@ -449,8 +470,8 @@ impl Tool for GestureTool {
                 // switches the Blob Brush.
                 self.smoothing = ev.mods.alt && (self.id == "blobBrush" || (self.id == "pencil" && self.alt_smooth));
                 // Alt draws a straight line only while it doesn't lend the Smooth tool; with Shift
-                // too, the line keeps Shift's 45° steps.
-                self.straight = self.id == "pencil" && !self.smoothing && (ev.mods.shift || ev.mods.alt);
+                // too, the line keeps Shift's 45° steps. Alt makes the Knife cut along a straight line.
+                self.straight = (self.id == "pencil" && !self.smoothing && (ev.mods.shift || ev.mods.alt)) || (self.id == "knife" && ev.mods.alt);
                 self.unconstrained = self.straight && !ev.mods.shift;
                 let extend = if self.draws_path() && !self.smoothing { self.find_extend(cx, p) } else { None };
                 self.extend = extend.map(|(id, at_start, _)| (id, at_start));
@@ -480,6 +501,7 @@ impl Tool for GestureTool {
                 if (!self.began && !self.straight && self.id == "pencil" && self.alt_smooth && ev.mods.alt) || self.blob_alt_smooths(ev.mods) {
                     self.smoothing = true;
                 }
+                self.knife_shift(ev.mods);
                 self.moved |= self.points.first().is_some_and(|start| p.distance(*start) > vectorcraft_geom::EPS);
                 let p = self.constrained(cx, p, ev.mods);
                 let mut end = p;
@@ -548,6 +570,7 @@ impl Tool for GestureTool {
                 if self.blob_alt_smooths(ev.mods) {
                     self.smoothing = true;
                 }
+                self.knife_shift(ev.mods);
                 let p = self.constrained(cx, p, ev.mods);
                 let end = if self.snaps() && !self.smoothing && (!self.straight || self.unconstrained) { self.snap.drag(cx, p, None) } else { p };
                 self.snap.clear();
