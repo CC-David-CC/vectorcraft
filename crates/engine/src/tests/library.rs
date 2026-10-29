@@ -724,6 +724,30 @@ fn a_new_item_is_added_where_it_is_dropped() {
     assert_eq!(order(&mut s, "graphics", "id"), [g]);
 }
 
+/// With no library yet, an add that can't be placed makes no "My Library", in the session or in
+/// the library folder; one that can makes it.
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn an_add_that_cannot_be_placed_makes_no_library() {
+    let folder = vectorcraft_testkit::temp_dir("library-add-unplaced").to_string_lossy().to_string();
+    let mut s = session();
+    s.libraries.set_dir(Some(folder.clone()));
+    for bad in [json!({"kind": "fillColor", "color": "#808080", "group": "Nope"}), json!({"kind": "fillColor", "color": "#808080", "after": "Nope"})]
+    {
+        assert!(s.execute("library.add", &bad).is_err(), "{bad}");
+        assert_eq!(run(&mut s, "library.list", json!({}))["libraries"], json!([]), "{bad}");
+    }
+    let mut t = session();
+    t.libraries.set_dir(Some(folder.clone()));
+    assert_eq!(run(&mut t, "library.list", json!({}))["libraries"], json!([]), "no file was written");
+    let r = run(&mut s, "library.add", json!({"kind": "fillColor", "color": "#808080"}));
+    let list = run(&mut s, "library.list", json!({}));
+    assert_eq!((list["current"].clone(), list["libraries"][0]["name"].clone()), (r["library"].clone(), json!("My Library")));
+    let mut u = session();
+    u.libraries.set_dir(Some(folder));
+    assert_eq!(run(&mut u, "library.list", json!({}))["libraries"].as_array().map(Vec::len), Some(1));
+}
+
 /// A library goes out to a file with its art and groups and comes back as a new library, numbered
 /// when its name is taken; the graphic it brings places in a document (#926).
 #[test]

@@ -808,14 +808,6 @@ fn delete(s: &mut Session, p: &Value) -> Result<Value> {
     ok()
 }
 
-/// The library `p` names, else the current one, else a new "My Library".
-fn target_library(s: &mut Session, p: &Value, cmd: &str) -> Result<String> {
-    if p.get("library").is_some_and(|v| !v.is_null()) || s.libraries.current().is_some() {
-        return library_id(s, p, cmd);
-    }
-    s.libraries.create("My Library")
-}
-
 /// `base`, or `base 2`, `base 3`… the first that `taken` doesn't hold.
 fn unique(base: &str, taken: impl Fn(&str) -> bool) -> String {
     std::iter::once(base.to_string()).chain((2..).map(|n| format!("{base} {n}"))).find(|n| !taken(n)).unwrap_or_else(|| base.to_string())
@@ -838,10 +830,9 @@ fn add(s: &mut Session, p: &Value) -> Result<Value> {
         }
     };
     let place = Placement::of(p, C)?;
-    let id = target_library(s, p, C)?;
     let kind_name = str_param(p, "kind").unwrap_or_default().to_string();
     let item_kind = kind.item_kind();
-    let r = s.libraries.change(&id, |lib| {
+    let put = |lib: &mut Library| {
         let full = |n: usize| if n >= MAX_ITEMS { Err(bad(C, format!("the library holds {MAX_ITEMS} items of this kind already"))) } else { Ok(()) };
         Ok(match item {
             Item::Graphic(mut g) => {
@@ -901,8 +892,18 @@ fn add(s: &mut Session, p: &Value) -> Result<Value> {
                 placed(lib, &place, ItemRef { kind: item_kind, item: name.clone() }, json!({ "name": name, "existing": false }))?
             }
         })
-    })?;
-    let mut r = r;
+    };
+    // Into the library `p` names, else the current one, else a new "My Library", which is kept
+    // only once the item is in it (a `group` or item to place it by that it lacks makes none).
+    let (id, mut r) = if p.get("library").is_some_and(|v| !v.is_null()) || s.libraries.current().is_some() {
+        let id = library_id(s, p, C)?;
+        let r = s.libraries.change(&id, put)?;
+        (id, r)
+    } else {
+        let mut lib = Library { name: "My Library".to_string(), ..Default::default() };
+        let r = put(&mut lib)?;
+        (s.libraries.insert(lib)?, r)
+    };
     r["library"] = json!(id);
     r["kind"] = json!(kind_name);
     Ok(r)
