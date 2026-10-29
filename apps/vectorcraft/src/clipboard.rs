@@ -9,8 +9,10 @@
 //!   and EPS as vector art (#1499) and its PNG or TIFF as they are, as screenshots copy them (on
 //!   Linux arboard reads no other formats). On Wayland, arboard's data-control
 //!   backend reads the compositor's clipboard (X11 through XWayland only sees what X11 apps
-//!   copied), falling back to X11 where the compositor lacks the protocol. A clipboard that can't
-//!   be opened is tried again after a wait that grows to a minute, not each time Paste asks.
+//!   copied), falling back to X11 where the compositor lacks the protocol, and where there is no
+//!   X11 either (a Flatpak on GNOME) to the compositor's core protocol on the window's connection,
+//!   text only. A clipboard that can't be opened is tried again after a wait that grows to a
+//!   minute, not each time Paste asks.
 //! - Everywhere: files copied in a file manager paste as the first one that is art (SVG, PDF, EPS,
 //!   a metafile or a bitmap), before the clipboard's other formats (the files' paths as text).
 
@@ -20,12 +22,16 @@ use std::path::PathBuf;
 use vectorcraft_engine::cmd::clipboard::{BITMAP, EPS, FILE_HEAD, Flavour, PDF, PNG, SVG, TEXT, file_flavour};
 use vectorcraft_ui_egui::SystemClipboard;
 
-/// This platform's system clipboard.
-pub fn system_clipboard() -> Box<dyn SystemClipboard> {
+/// This platform's system clipboard. On Linux, `window`'s Wayland connection carries text where
+/// arboard can't open (GNOME has no data-control protocol, a Flatpak there no X11).
+pub fn system_clipboard(window: Option<std::sync::Arc<winit::window::Window>>) -> Box<dyn SystemClipboard> {
     #[cfg(windows)]
-    let cb = Box::<win::Clipboard>::default();
+    let cb = {
+        let _ = window;
+        Box::<win::Clipboard>::default()
+    };
     #[cfg(not(windows))]
-    let cb = Box::<portable::Clipboard>::default();
+    let cb = Box::new(portable::Clipboard::new(window));
     cb
 }
 
@@ -307,10 +313,12 @@ mod win {
     }
 }
 
-/// arboard: one format at a time. Built everywhere so it is checked everywhere.
+/// arboard, or on a Wayland compositor without its data-control protocol the core protocol's text
+/// clipboard: one format at a time. Built everywhere so it is checked everywhere.
 #[cfg_attr(windows, allow(dead_code))]
 mod portable {
     use std::borrow::Cow;
+    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::{Duration, Instant};
 
@@ -320,6 +328,108 @@ mod portable {
     enum Ours {
         Text(String),
         Image(usize, usize),
+    }
+
+    /// An open clipboard connection.
+    enum Backend {
+        Arboard(arboard::Clipboard),
+        /// The compositor's core data-device protocol on the window's connection (text only).
+        #[cfg(target_os = "linux")]
+        Wayland(super::wayland::TextClipboard),
+    }
+
+    /// What a write of a picture says where the clipboard carries text only.
+    const TEXT_ONLY: &str = "this clipboard carries text only";
+
+    impl Backend {
+        /// arboard (Wayland data-control, else X11), else the core protocol on `window`'s
+        /// Wayland connection. Err: why each failed.
+        fn open(window: Option<&Arc<winit::window::Window>>) -> Result<Self, String> {
+            first_open(
+                || arboard::Clipboard::new().map(Self::Arboard).map_err(|e| e.to_string()),
+                || {
+                    #[cfg(target_os = "linux")]
+                    return window.and_then(|w| super::wayland::TextClipboard::new(w.clone())).map(Self::Wayland).ok_or("not a Wayland window");
+                    #[cfg(not(target_os = "linux"))]
+                    {
+                        let _ = window;
+                        Err("not on Linux")
+                    }
+                },
+            )
+        }
+
+        fn name(&self) -> &'static str {
+            match self {
+                Self::Arboard(_) => "arboard",
+                #[cfg(target_os = "linux")]
+                Self::Wayland(_) => "the Wayland core protocol (text only)",
+            }
+        }
+
+        fn get_text(&mut self) -> Result<String, String> {
+            match self {
+                Self::Arboard(cb) => cb.get_text().map_err(|e| e.to_string()),
+                #[cfg(target_os = "linux")]
+                Self::Wayland(cb) => cb.get_text(),
+            }
+        }
+
+        fn set_text(&mut self, text: &str) -> Result<(), String> {
+            match self {
+                Self::Arboard(cb) => cb.set_text(text).map_err(|e| e.to_string()),
+                #[cfg(target_os = "linux")]
+                Self::Wayland(cb) => {
+                    cb.set_text(text);
+                    Ok(())
+                }
+            }
+        }
+
+        fn get_image(&mut self) -> Result<arboard::ImageData<'static>, String> {
+            match self {
+                Self::Arboard(cb) => cb.get_image().map_err(|e| e.to_string()),
+                #[cfg(target_os = "linux")]
+                Self::Wayland(_) => Err(TEXT_ONLY.into()),
+            }
+        }
+
+        fn set_image(&mut self, img: arboard::ImageData<'_>) -> Result<(), String> {
+            match self {
+                Self::Arboard(cb) => cb.set_image(img).map_err(|e| e.to_string()),
+                #[cfg(target_os = "linux")]
+                Self::Wayland(_) => Err(TEXT_ONLY.into()),
+            }
+        }
+
+        fn clear(&mut self) -> Result<(), String> {
+            match self {
+                Self::Arboard(cb) => cb.clear().map_err(|e| e.to_string()),
+                #[cfg(target_os = "linux")]
+                Self::Wayland(cb) => {
+                    cb.set_text("");
+                    Ok(())
+                }
+            }
+        }
+
+        /// Files copied in a file manager (none where the backend can't read a file list).
+        fn file_list(&mut self) -> Vec<std::path::PathBuf> {
+            match self {
+                Self::Arboard(cb) => cb.get().file_list().unwrap_or_default(),
+                #[cfg(target_os = "linux")]
+                Self::Wayland(_) => vec![],
+            }
+        }
+    }
+
+    /// The first of `arboard` and `wayland` that opens, tried in that order. Err: why each failed.
+    fn first_open<B>(arboard: impl FnOnce() -> Result<B, String>, wayland: impl FnOnce() -> Result<B, &'static str>) -> Result<B, String> {
+        let arboard = match arboard() {
+            Ok(cb) => return Ok(cb),
+            Err(e) => e,
+        };
+        wayland().map_err(|wayland| format!("arboard: {arboard}; Wayland core protocol: {wayland}"))
     }
 
     /// Who asks for the clipboard: the background paste check waits out the whole wait after a
@@ -348,7 +458,7 @@ mod portable {
     }
 
     /// A handle opened on first use and kept, or after a failure opened again only once its wait is
-    /// over: where the clipboard can't be opened, asking a few times a second must not reconnect each time.
+    /// over: where neither backend opens, asking a few times a second must not reconnect each time.
     pub(super) struct Reopen<B> {
         handle: Option<B>,
         failed: Option<Failed>,
@@ -415,20 +525,20 @@ mod portable {
 
     pub struct Clipboard {
         /// Kept open: on Linux the copied data lives as long as the handle does.
-        cb: Reopen<arboard::Clipboard>,
+        cb: Reopen<Backend>,
+        /// The app window, for the Wayland core protocol (on its connection).
+        window: Option<Arc<winit::window::Window>>,
         ours: Option<Ours>,
     }
 
-    impl Default for Clipboard {
-        fn default() -> Self {
-            Self { cb: Reopen::new(&UNAVAILABLE_LOGGED), ours: None }
-        }
-    }
-
     impl Clipboard {
-        fn cb(&mut self, asker: Asker) -> Result<&mut arboard::Clipboard, String> {
-            let open = || arboard::Clipboard::new().map_err(|e| e.to_string());
-            self.cb.get(asker, Instant::now(), open, |_| "arboard").ok_or_else(|| "no system clipboard".to_string())
+        pub fn new(window: Option<Arc<winit::window::Window>>) -> Self {
+            Self { cb: Reopen::new(&UNAVAILABLE_LOGGED), window, ours: None }
+        }
+
+        fn cb(&mut self, asker: Asker) -> Result<&mut Backend, String> {
+            let window = self.window.as_ref();
+            self.cb.get(asker, Instant::now(), || Backend::open(window), Backend::name).ok_or_else(|| "no system clipboard".to_string())
         }
     }
 
@@ -442,16 +552,16 @@ mod portable {
             let cb = self.cb(Asker::User)?;
             let ours = match (text, image) {
                 (Some(t), _) => {
-                    cb.set_text(t.as_str()).map_err(|e| e.to_string())?;
+                    cb.set_text(t.as_str())?;
                     Some(Ours::Text(t))
                 }
                 (None, Some(img)) => {
                     let (width, height) = (img.width() as usize, img.height() as usize);
-                    cb.set_image(arboard::ImageData { width, height, bytes: Cow::Owned(img.into_raw()) }).map_err(|e| e.to_string())?;
+                    cb.set_image(arboard::ImageData { width, height, bytes: Cow::Owned(img.into_raw()) })?;
                     Some(Ours::Image(width, height))
                 }
                 (None, None) => {
-                    cb.clear().map_err(|e| e.to_string())?;
+                    cb.clear()?;
                     None
                 }
             };
@@ -470,7 +580,7 @@ mod portable {
 
         fn read(&mut self, mimes: &[&'static str]) -> Option<Flavour> {
             let cb = self.cb(Asker::User).ok()?;
-            if let Some(f) = cb.get().file_list().ok().and_then(|paths| copied_file(paths, mimes)) {
+            if let Some(f) = copied_file(cb.file_list(), mimes) {
                 return Some(f);
             }
             mimes.iter().find_map(|m| {
@@ -609,6 +719,26 @@ mod portable {
         }
 
         #[test]
+        fn arboard_is_tried_before_the_wayland_core_protocol() {
+            let wayland_tried = Cell::new(false);
+            let wayland = |ok| {
+                wayland_tried.set(true);
+                if ok { Ok("wayland") } else { Err("not a Wayland window") }
+            };
+            // Where arboard opens (data-control, X11) the core protocol isn't tried.
+            assert_eq!(first_open(|| Ok("arboard"), || wayland(true)), Ok("arboard"));
+            assert!(!wayland_tried.get());
+            // The Flatpak on GNOME: no data-control, no X11.
+            assert_eq!(first_open(|| Err("no X11".into()), || wayland(true)), Ok("wayland"));
+            assert!(wayland_tried.get());
+            // Neither: every reason is kept for the log.
+            assert_eq!(
+                first_open(|| Err("no X11".into()), || wayland(false)),
+                Err::<&str, _>("arboard: no X11; Wayland core protocol: not a Wayland window".into())
+            );
+        }
+
+        #[test]
         fn one_outage_is_logged_once_across_handles() {
             static LOGGED: AtomicBool = AtomicBool::new(false);
             let clock = Clock::new();
@@ -619,6 +749,43 @@ mod portable {
             assert!(ui.get(Asker::User, clock.now(), fail, name).is_none());
             assert!(LOGGED.load(Ordering::Relaxed));
             assert!(probe.opened().is_none() && ui.opened().is_none());
+        }
+    }
+}
+
+/// The compositor's clipboard through the core data-device protocol (`wl_data_device`), on the
+/// window's own Wayland connection: what Copy and Paste use where the compositor lacks the
+/// data-control protocol arboard needs (GNOME) and there is no X11 to fall back on (the Flatpak on
+/// a Wayland session). Text only (smithay-clipboard), and only while the window has focus, as the
+/// protocol has it.
+#[cfg(target_os = "linux")]
+mod wayland {
+    use std::sync::Arc;
+
+    pub struct TextClipboard {
+        cb: smithay_clipboard::Clipboard,
+        /// Held as long as the clipboard: its connection is the window's.
+        _window: Arc<winit::window::Window>,
+    }
+
+    impl TextClipboard {
+        /// None when `window` isn't a Wayland window.
+        #[allow(unsafe_code)]
+        pub fn new(window: Arc<winit::window::Window>) -> Option<Self> {
+            use winit::raw_window_handle::{HasDisplayHandle as _, RawDisplayHandle};
+            let RawDisplayHandle::Wayland(d) = window.display_handle().ok()?.as_raw() else { return None };
+            // SAFETY: the display is winit's open `wl_display`, which outlives `window` (held beside
+            // the clipboard); smithay-clipboard makes its own event queue on it and doesn't close it.
+            let cb = unsafe { smithay_clipboard::Clipboard::new(d.display.as_ptr()) };
+            Some(Self { cb, _window: window })
+        }
+
+        pub fn get_text(&self) -> Result<String, String> {
+            self.cb.load().map_err(|e| e.to_string())
+        }
+
+        pub fn set_text(&self, text: &str) {
+            self.cb.store(text);
         }
     }
 }
