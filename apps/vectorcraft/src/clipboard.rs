@@ -785,6 +785,12 @@ mod wayland {
         _window: Arc<winit::window::Window>,
     }
 
+    impl Loader {
+        fn load(&self) -> Result<String, String> {
+            self.cb.load().map_err(|e| e.to_string())
+        }
+    }
+
     impl TextClipboard {
         /// None when `window` isn't a Wayland window or the read worker can't start.
         #[allow(unsafe_code)]
@@ -797,7 +803,9 @@ mod wayland {
             // makes its own event queue on the display and doesn't close it.
             let (cb, reader) = unsafe { (smithay_clipboard::Clipboard::new(display), smithay_clipboard::Clipboard::new(display)) };
             let loader = Loader { cb: reader, _window: window.clone() };
-            let loads = Loads::spawn(move || loader.cb.load().map_err(|e| e.to_string()))?;
+            // `loader.load()`, not `loader.cb.load()`: a closure moves only the fields it names,
+            // and the worker must hold the window as long as its clipboard.
+            let loads = Loads::spawn(move || loader.load())?;
             Some(Self { cb, loads, _window: window })
         }
 
