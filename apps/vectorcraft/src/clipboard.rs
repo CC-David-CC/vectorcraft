@@ -757,35 +757,153 @@ mod portable {
 /// window's own Wayland connection: what Copy and Paste use where the compositor lacks the
 /// data-control protocol arboard needs (GNOME) and there is no X11 to fall back on (the Flatpak on
 /// a Wayland session). Text only (smithay-clipboard), and only while the window has focus, as the
-/// protocol has it.
+/// protocol has it. A read waits [`LOAD_WAIT`] at most: smithay-clipboard waits for the owner's
+/// data with no limit, so reads run on a worker of their own.
 #[cfg(target_os = "linux")]
 mod wayland {
     use std::sync::Arc;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    /// The longest a read waits for the selection's owner to send its text.
+    const LOAD_WAIT: Duration = Duration::from_secs(2);
+    /// What a read says once its worker has stopped.
+    const GONE: &str = "the clipboard's reader stopped";
 
     pub struct TextClipboard {
+        /// Writes: a store only hands the text to smithay-clipboard's thread.
         cb: smithay_clipboard::Clipboard,
-        /// Held as long as the clipboard: its connection is the window's.
+        /// Reads, on a worker with a second clipboard on the same connection.
+        loads: Loads,
+        /// Held as long as the clipboards: their connection is the window's.
+        _window: Arc<winit::window::Window>,
+    }
+
+    /// The read worker's clipboard and the window whose connection it uses, dropped in that order.
+    struct Loader {
+        cb: smithay_clipboard::Clipboard,
         _window: Arc<winit::window::Window>,
     }
 
     impl TextClipboard {
-        /// None when `window` isn't a Wayland window.
+        /// None when `window` isn't a Wayland window or the read worker can't start.
         #[allow(unsafe_code)]
         pub fn new(window: Arc<winit::window::Window>) -> Option<Self> {
             use winit::raw_window_handle::{HasDisplayHandle as _, RawDisplayHandle};
             let RawDisplayHandle::Wayland(d) = window.display_handle().ok()?.as_raw() else { return None };
-            // SAFETY: the display is winit's open `wl_display`, which outlives `window` (held beside
-            // the clipboard); smithay-clipboard makes its own event queue on it and doesn't close it.
-            let cb = unsafe { smithay_clipboard::Clipboard::new(d.display.as_ptr()) };
-            Some(Self { cb, _window: window })
+            let display = d.display.as_ptr();
+            // SAFETY: the display is winit's open `wl_display`, which outlives `window`; each
+            // clipboard is held beside a clone of `window` and dropped before it. smithay-clipboard
+            // makes its own event queue on the display and doesn't close it.
+            let (cb, reader) = unsafe { (smithay_clipboard::Clipboard::new(display), smithay_clipboard::Clipboard::new(display)) };
+            let loader = Loader { cb: reader, _window: window.clone() };
+            let loads = Loads::spawn(move || loader.cb.load().map_err(|e| e.to_string()))?;
+            Some(Self { cb, loads, _window: window })
         }
 
-        pub fn get_text(&self) -> Result<String, String> {
-            self.cb.load().map_err(|e| e.to_string())
+        pub fn get_text(&mut self) -> Result<String, String> {
+            self.loads.get(LOAD_WAIT)
         }
 
         pub fn set_text(&self, text: &str) {
             self.cb.store(text);
+        }
+    }
+
+    /// Reads made on a worker thread and waited for a bounded time: a selection owner that never
+    /// sends its data holds the worker, not the caller.
+    struct Loads {
+        requests: mpsc::Sender<()>,
+        answers: mpsc::Receiver<Result<String, String>>,
+        /// A read that timed out and hasn't answered yet: until it does, reads don't queue behind it.
+        pending: bool,
+    }
+
+    impl Loads {
+        fn spawn(mut load: impl FnMut() -> Result<String, String> + Send + 'static) -> Option<Self> {
+            let (requests, asked) = mpsc::channel::<()>();
+            let (answer, answers) = mpsc::channel();
+            let work = move || {
+                while asked.recv().is_ok() {
+                    if answer.send(load()).is_err() {
+                        break;
+                    }
+                }
+            };
+            std::thread::Builder::new().name("wayland-clipboard-read".into()).spawn(work).ok()?;
+            Some(Self { requests, answers, pending: false })
+        }
+
+        /// The text, or why there is none, after `wait` at most.
+        fn get(&mut self, wait: Duration) -> Result<String, String> {
+            if self.pending {
+                match self.answers.try_recv() {
+                    // The late answer of the read that timed out: stale by now.
+                    Ok(_) => self.pending = false,
+                    Err(mpsc::TryRecvError::Empty) => return Err("the clipboard's owner hasn't answered an earlier read".into()),
+                    Err(mpsc::TryRecvError::Disconnected) => return Err(GONE.into()),
+                }
+            }
+            self.requests.send(()).map_err(|_| GONE.to_string())?;
+            match self.answers.recv_timeout(wait) {
+                Ok(text) => text,
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    self.pending = true;
+                    Err(format!("the clipboard's owner didn't send its text within {wait:?}"))
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => Err(GONE.into()),
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use std::time::Instant;
+
+        use super::*;
+
+        #[test]
+        fn a_read_that_answers_in_time_gives_the_text() {
+            let mut loads = Loads::spawn(|| Ok("<svg/>".into())).unwrap();
+            assert_eq!(loads.get(Duration::from_secs(5)), Ok("<svg/>".to_string()));
+            assert_eq!(loads.get(Duration::from_secs(5)), Ok("<svg/>".to_string()));
+        }
+
+        #[test]
+        fn an_owner_that_never_answers_holds_the_worker_not_the_caller() {
+            let (release, gate) = mpsc::channel::<()>();
+            let mut calls = 0;
+            let mut loads = Loads::spawn(move || {
+                calls += 1;
+                if calls == 1 {
+                    // The first owner sends nothing until released.
+                    let _ = gate.recv();
+                    return Ok("stale".into());
+                }
+                Ok("fresh".into())
+            })
+            .unwrap();
+            let start = Instant::now();
+            assert!(loads.get(Duration::from_millis(50)).is_err(), "the first read times out");
+            // While it is unanswered, a read doesn't queue behind it or wait at all.
+            assert!(loads.get(Duration::from_secs(60)).is_err());
+            assert!(start.elapsed() < Duration::from_secs(30), "no read waited past its bound");
+            release.send(()).unwrap();
+            // Once the late answer is in, it is dropped and a new read is made.
+            let text = (0..200).find_map(|_| {
+                std::thread::sleep(Duration::from_millis(10));
+                loads.get(Duration::from_secs(5)).ok()
+            });
+            assert_eq!(text.as_deref(), Some("fresh"));
+        }
+
+        #[test]
+        fn a_read_after_the_worker_stops_says_so() {
+            let mut loads = Loads::spawn(|| Ok(String::new())).unwrap();
+            // The worker ends when its answers can't be sent: drop them by hand.
+            let (_, dead) = mpsc::channel();
+            drop(std::mem::replace(&mut loads.answers, dead));
+            assert_eq!(loads.get(Duration::from_millis(50)), Err(GONE.to_string()));
         }
     }
 }
