@@ -585,10 +585,12 @@ pub(super) fn trace_make(s: &mut Session, p: &Value, expand: bool) -> Result<Val
                 *live = Some(Box::new(shape));
             }
             // A library color fills with the swatch's own color (its model kept), linked to a
-            // global or spot swatch of the document.
-            let solid = library
-                .iter()
-                .find(|(rgb, _)| *rgb == tp.color)
+            // global or spot swatch of the document. Of the swatches that trace as this color,
+            // the first linked one is taken, else the first.
+            let same = || library.iter().filter(|(rgb, _)| *rgb == tp.color);
+            let solid = same()
+                .find(|(_, p)| matches!(p, Paint::Solid { swatch: Some(_), .. }))
+                .or_else(|| same().next())
                 .map_or_else(|| Paint::solid(Color::rgb8(tp.color[0], tp.color[1], tp.color[2])), |l| l.1.clone());
             // Gradients: a path the tracer found to be a linear gradient is filled with it.
             let paint = tp.gradient.as_ref().map_or(solid, |g| traced_gradient(g, xf));
