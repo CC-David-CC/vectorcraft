@@ -649,7 +649,11 @@ fn paint_paper(app: &VectorcraftApp, ui: &Ui, painter: &egui::Painter, xf: &Xf, 
     // on, the canvas multiplies it with the paper color: each sRGB channel is artboard × paper / 255,
     // rounded. The transparency grid, while it shows, covers it as it covers the others.
     painter.rect_filled(rect, 0.0, t.pasteboard);
-    if app.ui.view.artboards && !app.ui.view.outline {
+    if !shows_artboards(app) {
+        // View › Hide Artboards: no edges and no pasteboard, the whole canvas paper (#4038).
+        let setup = &doc.setup;
+        painter.rect_filled(rect, 0.0, if setup.simulate_paper { crate::panels::c32(&setup.paper()) } else { Color32::WHITE });
+    } else if !app.ui.view.outline {
         let setup = &doc.setup;
         let grid = (st.transparency_grid && setup.background == vectorcraft_doc::Background::Transparent).then(|| checker_texture(ui.ctx(), setup));
         let paper = if setup.simulate_paper { crate::panels::c32(&setup.paper()) } else { Color32::WHITE };
@@ -712,8 +716,17 @@ fn reproject_frame(app: &VectorcraftApp, painter: &egui::Painter, xf: &Xf, rect:
     }
 }
 
+/// Do the artboards show? View › Hide Artboards hides them, except for the Artboard tool, which
+/// edits them.
+fn shows_artboards(app: &VectorcraftApp) -> bool {
+    app.ui.view.artboards || app.session.tool_id() == "artboard"
+}
+
 /// The artboards' edges, bleeds, marks and names.
 fn artboard_outlines(app: &VectorcraftApp, ui: &Ui, painter: &egui::Painter, xf: &Xf, t: &Tokens) {
+    if !shows_artboards(app) {
+        return;
+    }
     let Some(st) = app.session.active() else { return };
     let doc = &st.doc;
     // Artboard edges and names. The Artboard tool labels its selected artboards itself (following
