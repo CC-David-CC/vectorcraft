@@ -1245,6 +1245,7 @@ through the session) and `addons::pen::tests` in `vectorcraft-ui-egui` (the subm
 › Smart Pen add-on.
 
 ## Color Effects add-on (2026-10-30)
+
 A VectorCraft addition, not an Illustrator feature, so no area score moves. Effect › Color Effects adds live Exposure
 (stops of linear light, offset and gamma), Desaturate and Invert Colors as colour adjustments evaluated with those of
 Effect › Color Adjustments (`vectorcraft_effects::addons::color`), and `addon.color.filter` applies any colour adjustment
