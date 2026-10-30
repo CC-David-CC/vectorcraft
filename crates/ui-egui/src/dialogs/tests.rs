@@ -2518,8 +2518,8 @@ fn an_effect_dialog_keeps_a_typed_distance_within_the_effects_range() {
 /// or out-of-range value; sub-minimum input is clamped immediately and invalid input clears cleanly.
 #[test]
 fn color_halftone_invalid_input_does_not_revert_to_sub_minimum_value() {
-    let mut first_app = app();
-    let _id = first_app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap();
+    let mut app = app();
+    let _id = app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap();
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
@@ -2528,42 +2528,30 @@ fn color_halftone_invalid_input_does_not_revert_to_sub_minimum_value() {
         out.textures_delta.clear();
         out
     };
-    first_app.run("select.all", json!({})).unwrap();
-    first_app.run("effect.dialog", json!({"effect": "pixelate.colorHalftone"})).unwrap();
-    frame(&mut first_app, vec![]);
+    app.run("select.all", json!({})).unwrap();
+    app.run("effect.dialog", json!({"effect": "pixelate.colorHalftone"})).unwrap();
+    frame(&mut app, vec![]);
     // 1. Enter 0.5 px (sub-minimum): clamped immediately to 4 pt on commit
-    frame(&mut first_app, vec![egui::Event::Text("0.5 px".into())]);
-    frame(
-        &mut first_app,
-        vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }],
-    );
-    assert_eq!(first_app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
+    frame(&mut app, vec![egui::Event::Text("0.5 px".into())]);
+    frame(&mut app, vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }]);
+    assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
 
-    // 2. Typing invalid text on Enter must NOT confirm/close the dialog and displays rejection highlight
-    let mut second_app = app();
-    let _id2 = second_app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap();
-    let ctx2 = egui::Context::default();
-    theme::install_fonts(&ctx2);
-    theme::apply(&ctx2, Default::default());
-    let _t = crate::theme::Tokens::get(&ctx2);
-    let frame2 = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
-        let mut out = ctx2.run_ui(egui::RawInput { events, ..Default::default() }, |ui| show(app, ui.ctx()));
-        out.textures_delta.clear();
-        out
-    };
-    second_app.run("select.all", json!({})).unwrap();
-    second_app.run("effect.dialog", json!({"effect": "pixelate.colorHalftone"})).unwrap();
-    frame2(&mut second_app, vec![]);
-    frame2(&mut second_app, vec![egui::Event::Text("1jgghgh".into())]);
-    let _out = frame2(
-        &mut second_app,
+    // 2. Return focus to Max Radius with Shift+Tab, type invalid text, and commit with Enter
+    frame(
+        &mut app,
+        vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::SHIFT }],
+    );
+    frame(&mut app, vec![egui::Event::Text("1jgghgh".into())]);
+    let _out = frame(
+        &mut app,
         vec![egui::Event::Key { key: egui::Key::Enter, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }],
     );
-    // Dialog remains open
-    assert!(second_app.ui.dialog.is_some(), "dialog must remain open on invalid Enter commit");
-    assert_eq!(second_app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(8.0));
+    // Dialog remains open and retains the clamped 4.0 pt rather than reverting to 0.5 px
+    assert!(app.ui.dialog.is_some(), "dialog must remain open on invalid Enter commit");
+    assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
+
     // The field paints with rejection highlight (width 1.5, accent_strong)
-    let next_out = frame2(&mut second_app, vec![]);
+    let next_out = frame(&mut app, vec![]);
     let has_rejection_highlight = next_out.shapes.iter().any(|s| match &s.shape {
         egui::Shape::Rect(r) => (r.stroke.width - 1.5).abs() < 1e-3 && r.stroke.color.a() > 0,
         _ => false,

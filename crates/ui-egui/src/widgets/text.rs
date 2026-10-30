@@ -293,9 +293,6 @@ pub(super) fn recessed_text(
     });
     let enter_commit = rows == 1 && editing && ui.input(|i| i.key_pressed(egui::Key::Enter));
     let commit = resp.lost_focus() || kept || enter_commit;
-    if editing || enter_commit || commit {
-        eprintln!("RECESSED_TEXT: editing={} commit={} enter_commit={} buf={:?}", editing, commit, enter_commit, buf);
-    }
     (buf, commit, resp, rect)
 }
 
