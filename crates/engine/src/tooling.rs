@@ -147,6 +147,7 @@ impl Session {
     /// Direct Selection to the tools that edit anchors (the Pen) and Selection to the others.
     /// Cmd+Alt lends Group Selection while Direct Selection is active. Cmd still lends the last
     /// selection tool from other tools (Alt on the lent Direct Selection gesture stays copy/subtract).
+    /// Perspective Selection keeps Cmd+Alt drags to copy objects on their perspective plane.
     /// None for the other selection tools and the view tools.
     fn lent_tool(&self, id: &str, mods: &Mods) -> Option<&'static str> {
         use vectorcraft_tools::catalog::{edits_anchors, is_selection_tool};
@@ -155,6 +156,9 @@ impl Session {
         }
         if id == "directSelection" && mods.cmd && mods.alt {
             return Some("groupSelection");
+        }
+        if id == "perspectiveSelection" && mods.cmd && mods.alt {
+            return None;
         }
         if is_selection_tool(id) {
             return None;
