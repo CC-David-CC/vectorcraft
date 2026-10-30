@@ -5794,6 +5794,8 @@ The tool (`smartPen`), option `next`: `"straight"` (default) or `"curved"`, the 
   one toggles its anchor.
 - Segments drag to reshape (`addon.pen.reshape`; Shift: `symmetric`, Alt: `keepAngles`); Alt-click adds an anchor
   (`path.insertAnchor`); a click on a path that isn't selected selects it.
+- With no path being drawn, an Alt-drag away from paths draws a marquee that selects the points of the editable paths
+  inside it (`select.anchorsMany`; with Shift, toggles them).
 
 Commands:
 
