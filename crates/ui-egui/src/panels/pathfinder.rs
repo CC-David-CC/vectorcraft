@@ -474,6 +474,66 @@ mod tests {
         assert_eq!(app.last_pathfinder.as_deref(), Some("intersect"));
     }
 
+    /// A successful batch records its last repeatable Pathfinder step.
+    #[test]
+    fn batch_pathfinder_step_becomes_the_one_repeated() {
+        let mut app = two_squares();
+        click_button(&mut app, "Intersect");
+        select_two_squares(&mut app, 110.0);
+        app.run(
+            "command.batch",
+            json!({"commands": [
+                {"command": "object.pathfinder.unite", "params": {}},
+                {"command": "select.none", "params": {}}
+            ]}),
+        )
+        .unwrap();
+        assert_eq!(app.last_pathfinder.as_deref(), Some("unite"));
+        select_two_squares(&mut app, 210.0);
+        press_cmd_4(&mut app);
+        assert_eq!(objects(&app).last(), Some(&("path", [210.0, 10.0, 290.0, 90.0])));
+    }
+
+    /// A batch rollback leaves the previous Pathfinder operation available.
+    #[test]
+    fn failed_batch_pathfinder_step_keeps_history() {
+        let mut app = two_squares();
+        click_button(&mut app, "Unite");
+        select_two_squares(&mut app, 110.0);
+        let before = objects(&app);
+        assert!(
+            app.run(
+                "command.batch",
+                json!({"commands": [
+                    {"command": "object.pathfinder.intersect", "params": {}},
+                    {"command": "unknown.command", "params": {}}
+                ]})
+            )
+            .is_err()
+        );
+        assert_eq!(app.last_pathfinder.as_deref(), Some("unite"));
+        assert_eq!(objects(&app), before);
+        press_cmd_4(&mut app);
+        assert_eq!(objects(&app).last(), Some(&("path", [110.0, 10.0, 190.0, 90.0])));
+    }
+
+    /// Playing an action records its Pathfinder step for the repeat shortcut.
+    #[test]
+    fn actions_panel_play_records_pathfinder_step() {
+        let mut app = two_squares();
+        click_button(&mut app, "Intersect");
+        app.ui.action_sets[0]
+            .actions
+            .push(crate::panels::actions::Action { name: "Unite".into(), steps: vec![("object.pathfinder.unite".into(), json!({}))] });
+        let idx = app.ui.action_sets[0].actions.len() - 1;
+        select_two_squares(&mut app, 110.0);
+        crate::panels::actions::play(&mut app, 0, idx).unwrap();
+        assert_eq!(app.last_pathfinder.as_deref(), Some("unite"));
+        select_two_squares(&mut app, 210.0);
+        press_cmd_4(&mut app);
+        assert_eq!(objects(&app).last(), Some(&("path", [210.0, 10.0, 290.0, 90.0])));
+    }
+
     /// A rejected operation leaves the prior successful operation available to repeat.
     #[test]
     fn failed_operation_keeps_history() {
