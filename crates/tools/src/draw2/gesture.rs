@@ -34,6 +34,8 @@ const SMOOTH_RADIUS: f64 = 12.0;
 /// a fit's cost grows as its Fidelity shrinks (at 0.01 pt a long pen stroke lagged, #4565), and
 /// a preview within half a pixel of the stroke looks the same. The release fits it at its Fidelity.
 const PREVIEW_FIDELITY_PX: f64 = 0.5;
+/// The Smooth tool's Fidelity until Smooth Tool Options sets another.
+const SMOOTH_FIDELITY: f64 = 2.5;
 
 pub struct GestureTool {
     /// How many points the last preview of the stroke had ([`crate::previews_at`]); 0 when it was
@@ -87,6 +89,9 @@ pub struct GestureTool {
     /// preview shows the points joined by straight segments and the release fits them (Pencil
     /// only, on by default).
     pub live_fit: bool,
+    /// The Smooth tool's Fidelity, used when Alt switches the Pencil or Blob Brush to Smooth.
+    /// The engine sets it from Smooth Tool Options (`smoothFidelity`).
+    smooth_fidelity: f64,
     /// Active drag is smoothing with the Pencil or the Blob Brush (Alt held).
     smoothing: bool,
     /// The pointer has moved from the press point, by any distance (a move too short to add a
@@ -133,7 +138,7 @@ impl GestureTool {
             "join" => "join",
             _ => "pencil",
         };
-        let fidelity = if id == "smooth" { 2.5 } else { 1.5 };
+        let fidelity = if id == "smooth" { SMOOTH_FIDELITY } else { 1.5 };
         Self {
             id,
             previewed: 0,
@@ -157,6 +162,7 @@ impl GestureTool {
             alt_smooth: false,
             live_preview: true,
             live_fit: true,
+            smooth_fidelity: SMOOTH_FIDELITY,
             smoothing: false,
             moved: false,
             straight: false,
@@ -383,7 +389,7 @@ impl GestureTool {
             if has_sel && pts.len() >= 2 {
                 return vec![Action::Exec(
                     "path.smoothRegion".into(),
-                    json!({"points": points_json(pts), "radius": radius, "fidelity": self.fidelity}),
+                    json!({"points": points_json(pts), "radius": radius, "fidelity": self.smooth_fidelity}),
                 )];
             }
             return vec![];
@@ -783,6 +789,9 @@ impl Tool for GestureTool {
             "altSmooth" => self.alt_smooth = v.as_bool().unwrap_or(self.alt_smooth),
             "livePreview" if self.id == "pencil" => self.live_preview = v.as_bool().unwrap_or(self.live_preview),
             "liveFit" if self.id == "pencil" => self.live_fit = v.as_bool().unwrap_or(self.live_fit),
+            "smoothFidelity" if matches!(self.id, "pencil" | "blobBrush") => {
+                self.smooth_fidelity = v.as_f64().unwrap_or(self.smooth_fidelity).clamp(super::min_fidelity("smooth"), 100.0)
+            }
             "keepSelected" => self.keep_selected = v.as_bool().unwrap_or(self.keep_selected),
             "mergeOnlySelection" => self.merge_only_selection = v.as_bool().unwrap_or(self.merge_only_selection),
             "editWithin" => self.edit_within = v.as_f64().unwrap_or(self.edit_within).clamp(0.0, 100.0),

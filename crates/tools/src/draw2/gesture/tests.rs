@@ -420,7 +420,7 @@ fn blob_brush_alt_switches_to_the_smooth_tool() {
     let acts = drag_held(&mut t, &cx, &stroke, alt);
     assert!(acts[..acts.len() - 1].iter().all(|a| a.is_empty()), "{acts:?}");
     let v = smoothed(&acts).unwrap_or_else(|| panic!("{acts:?}"));
-    assert_eq!(v, json!({"points": [[50.0, 150.0], [150.0, 150.0], [250.0, 160.0]], "radius": cx.tol(12.0), "fidelity": 1.5}));
+    assert_eq!(v, json!({"points": [[50.0, 150.0], [150.0, 150.0], [250.0, 160.0]], "radius": cx.tol(12.0), "fidelity": SMOOTH_FIDELITY}));
     // Mid-drag the cursor stays the Smooth tool's when Alt is let go, and the line is thin with
     // no length label.
     t.pointer(&cx, &PointerEvent::new(PointerKind::Down, 50.0, 150.0).with_mods(alt));
@@ -869,6 +869,37 @@ fn pencil_alt_smooths_within_the_smooth_tools_radius() {
             t.set_option("editWithin", &json!(within));
             assert_eq!(radius(&drag_held(&mut t, &cx, &pts, alt)), want, "zoom {zoom}, editWithin {within}");
         }
+    }
+}
+
+/// An Alt smoothing drag uses the Smooth tool's Fidelity for both Pencil and Blob Brush.
+#[test]
+fn alt_smoothing_uses_the_smooth_tools_fidelity() {
+    let (d, id) = doc_with_rect();
+    let mut s = Selection::default();
+    s.set([id]);
+    let p = paint();
+    let mut cx = cx(&d, &s, &p);
+    cx.smart_guides = false;
+    let pts = [(50.0, 150.0), (150.0, 150.0), (250.0, 160.0)];
+    let fidelity = |acts: &[Vec<Action>]| match acts.last().and_then(|a| a.first()) {
+        Some(Action::Exec(c, v)) if c == "path.smoothRegion" => v["fidelity"].as_f64().unwrap(),
+        a => panic!("expected path.smoothRegion, got: {a:?}"),
+    };
+    let alt = Mods { alt: true, ..Default::default() };
+    let want = fidelity(&drag(&mut GestureTool::new("smooth"), &cx, &pts, Mods::default()));
+    for id in ["pencil", "blobBrush"] {
+        let mut t = GestureTool::new(id);
+        if id == "pencil" {
+            t.set_option("altSmooth", &json!(true));
+        }
+        t.set_option("fidelity", &json!(10.0));
+        assert_eq!(fidelity(&drag_held(&mut t, &cx, &pts, alt)), want, "{id}");
+        t.set_option("smoothFidelity", &json!(7.5));
+        assert_eq!(fidelity(&drag_held(&mut t, &cx, &pts, alt)), 7.5, "{id}");
+        // Drawing keeps the tool's own Fidelity; Smooth's setting stays out of its options.
+        assert_eq!(t.options()["fidelity"], json!(10.0), "{id}");
+        assert!(t.options().get("smoothFidelity").is_none(), "{id}");
     }
 }
 
