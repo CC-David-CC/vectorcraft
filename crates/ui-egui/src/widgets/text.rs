@@ -237,7 +237,11 @@ pub(super) fn recessed_text(
         .allocate_ui_with_layout(vec2(width, height), layout, |ui| {
             ui.set_min_size(vec2(width, height));
             let rect = ui.max_rect();
-            let invalid = ui.data_mut(|d| d.remove_temp::<bool>(id.with("invalid-flash"))).unwrap_or(false);
+            let now = ui.input(|i| i.time);
+            let invalid = ui.data(|d| d.get_temp::<f64>(id.with("invalid-flash"))).is_some_and(|end| now <= end);
+            if invalid {
+                ui.ctx().request_repaint();
+            }
             let stroke = if invalid {
                 Stroke::new(1.5, t.accent_strong)
             } else if editing {

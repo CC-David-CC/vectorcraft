@@ -2534,9 +2534,34 @@ fn color_halftone_invalid_input_does_not_revert_to_sub_minimum_value() {
     frame(&mut app, vec![egui::Event::Text("0.5 px".into())]);
     frame(&mut app, vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }]);
     assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
-    // 2. Type invalid input "1jgghgh"
+    // 2. Refocus Max Radius before typing invalid text
+    crate::widgets::arm_field_focus(&ctx, ("dlg-len", "maxRadius"));
+    frame(&mut app, vec![]);
     frame(&mut app, vec![egui::Event::Text("1jgghgh".into())]);
     frame(&mut app, vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }]);
-    // The value remains the valid clamped minimum 4.0 pt, never 0.5 px
+    // The value remains the valid clamped minimum 4.0 pt, never 0.5 px, and rejection flash is set
     assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
+    assert!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"] == serde_json::json!(4.0));
+}
+
+#[test]
+fn bounded_field_with_inches_does_not_clamp_point_bounds_to_inch_numbers() {
+    let mut app = app();
+    let _id = app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap();
+    // Switch document units to Inches
+    app.run("document.setup", json!({"units": "Inches"})).unwrap();
+    let ctx = egui::Context::default();
+    theme::install_fonts(&ctx);
+    theme::apply(&ctx, Default::default());
+    let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let mut out = ctx.run_ui(egui::RawInput { events, ..Default::default() }, |ui| show(app, ui.ctx()));
+        out.textures_delta.clear();
+    };
+    app.run("select.all", json!({})).unwrap();
+    app.run("effect.dialog", json!({"effect": "pixelate.colorHalftone"})).unwrap();
+    frame(&mut app, vec![]);
+    // Type 1 in: 72 pt is within 4..127 pt range and must not clamp to ~1.76 pt
+    frame(&mut app, vec![egui::Event::Text("1 in".into())]);
+    frame(&mut app, vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }]);
+    assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(72.0));
 }

@@ -102,10 +102,11 @@ fn unit_field(
     // ↑/↓ and the wheel step in the field's unit; a drag on its label scrubs it.
     let typed = typed_unit(ui.ctx(), unit);
     let read = |b: &str| typed.parse(&decimal_point(b));
-    let bounds = unit.from_pt(*bounds.start())..=unit.from_pt(*bounds.end());
+    let bounds_unit = unit.from_pt(*bounds.start())..=unit.from_pt(*bounds.end());
     let stops: Vec<f64> = stops.iter().map(|&s| unit.from_pt(s)).collect();
-    let stepped = step_value(ui, &resp, &mut buf, &bounds, (|b: &str| Some(unit.from_pt(read(b)?)), |v| unit.format(unit.to_pt(v))), None, &stops);
-    let scrubbed = scrub::field(ui, id, rect, &buf, value.map(|v| unit.from_pt(v)), STEP_DECIMALS, &bounds);
+    let stepped =
+        step_value(ui, &resp, &mut buf, &bounds_unit, (|b: &str| Some(unit.from_pt(read(b)?)), |v| unit.format(unit.to_pt(v))), None, &stops);
+    let scrubbed = scrub::field(ui, id, rect, &buf, value.map(|v| unit.from_pt(v)), STEP_DECIMALS, &bounds_unit);
     let commit = commit && buf != shown;
     if commit {
         match read(&buf).or_else(|| if share_of_value { share_of(&decimal_point(&buf), value?) } else { None }) {
@@ -117,7 +118,8 @@ fn unit_field(
             }
             None => {
                 ui.data_mut(|d| d.remove::<String>(id));
-                ui.data_mut(|d| d.insert_temp(id.with("invalid-flash"), true));
+                ui.data_mut(|d| d.insert_temp(id.with("invalid-flash"), ui.input(|i| i.time + 0.25)));
+                ui.ctx().request_repaint();
                 None
             }
         }
