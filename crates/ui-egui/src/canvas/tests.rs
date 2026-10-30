@@ -7937,3 +7937,45 @@ fn text_threads_skip_the_links_of_a_frame_in_perspective() {
     // One thread line (c to d) and its two arrows of three strokes each.
     assert_eq!(o.iter().filter(|x| matches!(x, Overlay::Line { .. })).count(), 7);
 }
+
+/// #4319: Draw Inside marks the object it draws into with a dotted open rectangle round its
+/// corners while the mode lasts, selected or not, and the marks go with the mode.
+#[test]
+fn draw_inside_marks_the_corners_of_its_object() {
+    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
+    let id =
+        vectorcraft_doc::NodeId(app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 120, "height": 90})).unwrap()["id"].as_u64().unwrap());
+    let ctx = egui::Context::default();
+    let color = c32(app.session.active().unwrap().doc.layer_color(id));
+    // The marks' dashes: one-pixel dashes in the layer colour no longer than a dash.
+    let dashes = |app: &mut VectorcraftApp| -> Vec<[Pos2; 2]> {
+        shapes(app, &ctx)
+            .into_iter()
+            .filter_map(|s| match s {
+                Shape::LineSegment { points, stroke } if stroke.color == color && stroke.width == 1.0 && points[0].distance(points[1]) <= 3.01 => {
+                    Some(points)
+                }
+                _ => None,
+            })
+            .collect()
+    };
+    let normal = dashes(&mut app).len();
+    app.run("view.drawMode", json!({"mode": "inside"})).unwrap();
+    let marks = dashes(&mut app);
+    // Eight arms of 16 px, each four dashes of 3 px with 2 px gaps.
+    assert_eq!(marks.len() - normal, 32, "{marks:?}");
+    let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
+    let b = app.session.active().unwrap().doc.node(id).unwrap().visual_bounds().unwrap();
+    let corner = xf.to_screen(Point::new(b.x0, b.y0)) - vec2(4.0, 4.0);
+    assert!(marks.iter().any(|m| m[0].distance(corner) < 2.0), "a mark starts at the padded top-left corner");
+    // Deselected, the object is still marked.
+    app.run("select.set", json!({"ids": []})).unwrap();
+    assert_eq!(dashes(&mut app).len(), marks.len());
+    // Rotated, the arms follow the object's turned sides.
+    app.view_mut().unwrap().rotation = 30.0;
+    assert_eq!(dashes(&mut app).len(), marks.len());
+    app.view_mut().unwrap().rotation = 0.0;
+    app.run("view.drawMode", json!({"mode": "normal"})).unwrap();
+    assert_eq!(dashes(&mut app).len(), normal);
+}
