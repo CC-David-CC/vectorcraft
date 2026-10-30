@@ -1,6 +1,6 @@
 # UI and interaction parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Smart Pen add-on: an Alt-drag away from paths selects points with a marquee; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Gradient panel presets; View › Hide Artboards hides their edges and shows the canvas as paper (#4038); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 ## Feature submission evidence
 
@@ -313,6 +313,7 @@ next unit in the order a right-click on a ruler lists them, from Feet back to Po
 | Blend panel (30.7) | partial | Window › Blend provides Type (Ease In, Ease Out, Ease In Out, Ease Out In), Ramp 0–100% and independent color Shift, alongside the existing blend controls. Easing is disabled without a spine. Original polynomial distributions approximate the publicly documented behavior; on-canvas easing handles remain missing. [Public source](https://helpx.adobe.com/illustrator/desktop/manage-colors/apply-transparency-and-blending/blend-panel-overview.html) |
 | Gradient panel: Dither (30.0) | done | Dither box under the stops (`paint.editGradient` `dither`); dimmed behind the Stroke proxy, fills only; `panels::gradient` test |
 | Gradient panel: Method, Classic or Perceptual (30.0) | done | Method menu under the Stroke buttons for linear and radial gradients (`paint.editGradient` `method`); [public source](https://helpx.adobe.com/illustrator/desktop/paint-and-fill/create-and-edit-gradients/control-perceptual-interpolation-in-gradients.html); `panels::gradient` test |
+| Gradient panel: Presets (30.0) | done | Presets menu by library (theme) plus Saved: applies a preset to the gradient behind the active proxy, keeping its placement, one undo step; panel menu Save Gradient Preset…, Delete Gradient Preset, Hide/Show Presets (`gradient.presets.*`); `panels::gradient` tests |
 | SVG Interactivity, Retype, Comments, Version History panels | missing | the last two are cloud features (out of scope) |
 | Workspaces (save, reset, switch); each remembers the layout changes made in it across switches and restarts until Reset <name> | done | `UiState::workspace_changes` |
 | Background Export: a progress dialog with the file name, the artboard count and a bar (busy for one artboard and for formats made in one go), Cancel (Esc) and Continue in Background; it opens after 0.4 s and never over another dialog. A cancelled export writes no file | done | #2564; on the shared `vectorcraft_doc::cancel` token (#2546), so a cancelled render keeps no half-drawn pattern tile or effect raster. The bar moves between artboards, not within one. Save As, Export for Screens and Export Selection don't show it yet |
@@ -388,6 +389,7 @@ separate. Scores and hours unchanged. [Behavior and command details](development
 | 2026-10-30 | minor | Art moved whole with the Direct Selection or Group Selection tool and dragged off the canvas goes to the panels (Asset Export, Graphic Styles, Swatches, Symbols) as with the Selection tool; anchor points and segments dragged off stay a reshape (#4233). Tests in `crates/ui-egui/src/canvas/tests.rs`; scores and estimates unchanged |
 | 2026-10-30 | minor | Blob Brush and Eraser Tool Options: Size follows the pen pressure, Fixed or Pressure with a Variation (#4590, #3961); scores and estimates unchanged |
 | 2026-10-30 | minor | Blob Brush Tool Options: Size follows the pen pressure, Fixed or Pressure with a Variation (#4590); scores and estimates unchanged |
+| 2026-10-30 | minor | Gradient panel: Presets menu and Save/Delete Gradient Preset (30.0); scores and estimates unchanged |
 | 2026-10-29 | minor | Pathfinder: live compound shapes (#4522): the panel menu's Make, Release and Expand Compound Shape, Alt-clicking a Shape Mode, a selected member's Shape Mode and the Expand button act; scores and estimates unchanged |
 | 2026-10-29 | minor | Object › Path › Smooth… with its slider and Auto-Smooth (#4115); scores and estimates unchanged |
 | 2026-10-25 | minor | Selection tool: a double-click on a threaded port breaks the thread there (`text.thread.break`); scores and estimates unchanged |
