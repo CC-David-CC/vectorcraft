@@ -2053,10 +2053,13 @@ size and a PNG `thumbnail` in base64; colours with `name`, `hex` and `color`; st
 `library.setCurrent {library}` manage them; `library` is an id or a name, and without it the current library (the one
 the panel shows) is meant.
 
-`library.add {library?, kind, ids?, name?, color?, swatch?}` adds from the selection: `graphic` (a copy of the objects with the
-images, symbols, patterns, swatches, styles and brushes they use, as Copy takes them), `fillColor` / `strokeColor` (the
-first selected object's solid colour, else the default one, or `color`), `charStyle` / `paraStyle` (the selected
-text's attributes). An item the library already has is reported as `existing`. `library.use {library?, kind, item,
+`library.add {library?, kind, ids?, name?, color?, swatch?, group?, before? | after?}` adds from the selection:
+`graphic` (a copy of the objects with the images, symbols, patterns, swatches, styles and brushes they use, as Copy
+takes them), `fillColor` / `strokeColor` (the first selected object's solid colour, else the default one, or `color`),
+`charStyle` / `paraStyle` (the selected text's attributes). The new item goes into `group` (by default into none) and,
+with `before` or `after` (another item of its kind), just before or after that item, as `library.moveItem` places one;
+art and swatches dropped among the panel's items are added this way. An item the library already has is reported as
+`existing`, and stays where it is. `library.use {library?, kind, item,
 center?, to?}` uses one: a graphic is placed centred on `center` (pasted with its resources; a swatch name the document
 gives another colour merges into the document's), a colour paints the selection's fill or stroke, and a style is added
 to the document under its name without the white space around it (numbered when that name is taken by other
