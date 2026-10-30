@@ -374,6 +374,54 @@ fn editing_data_in_the_units_of_a_user_unit_page_comes_in_at_the_pages_size() {
     assert!(near(first(&d, 0), [100.0, 860.0, 140.0, 900.0]), "{:?}", first(&d, 0));
 }
 
+/// A PDF part read from a `UserUnit` page cropped to the art: the art's box, not the artboard, is
+/// the page in the editing data's units, so the layers are read at the page's size, with their
+/// artboard.
+#[test]
+fn a_user_unit_page_cropped_to_the_art_is_read_in_its_units() {
+    // A 50 × 50 artboard, art over 100 × 100 (its bounding box), and a page of that box at 10 pt a
+    // unit: 1000 × 1000 pt.
+    let art = native(&layer("Jig", true, &square(10, 10))).replace("%AI3_Cropmarks: 0 0 100 100", "%AI3_Cropmarks: 0 0 50 50");
+    let page = in_points(pdf_part(10.0, 86.0), 10.0);
+    let (d, w, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 10.0);
+    assert!(read, "{w:?}");
+    assert_eq!(d.artboards[0].rect.size(), vectorcraft_geom::Size::new(500.0, 500.0));
+    // The square, 36 down the artboard, ten times as large and as far.
+    let b = d.layers[0].children().unwrap()[0].visual_bounds().unwrap();
+    assert!([b.x0 - 100.0, b.y0 - 360.0, b.x1 - 140.0, b.y1 - 400.0].iter().all(|v| v.abs() < 1e-6), "{b:?}");
+}
+
+/// A PDF part whose pages are each cropped to all of the art holds the art once a page: the type
+/// of the pages after the first is that type again, and only the first page's goes into the
+/// layers.
+#[test]
+fn type_on_the_copies_of_a_page_cropped_to_the_art_is_read_once() {
+    // A 50 × 50 artboard, art over 100 × 100, a text object with no story in the file, and two
+    // pages of the art's box in a row, 20 apart, each with the square and the type.
+    let art = native(&layer("Art", true, &(square(10, 10) + &text_object(0)))).replace("%AI3_Cropmarks: 0 0 100 100", "%AI3_Cropmarks: 0 0 50 50");
+    let mut pdf = pdf_part(10.0, 86.0);
+    let mut second = pdf.artboards[0].clone();
+    (second.id, second.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    pdf.artboards.push(second);
+    let copy = pdf_part(130.0, 86.0).layers[0].children().unwrap()[0].as_ref().clone();
+    let layer_id = pdf.layers[0].id;
+    let id = pdf.alloc_id();
+    pdf.insert(Some(layer_id), 1, Node { id, ..copy }).unwrap();
+    for x in [30.0, 150.0] {
+        let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
+        let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(x, 40.0), "Hi", style);
+        let id = pdf.alloc_id();
+        pdf.insert(Some(layer_id), 2, Node::new(id, NodeKind::Text(Box::new(text)))).unwrap();
+    }
+    let (d, w, read) = crate::layered_ai(&private(&art), pdf, vec![], false, false, 1.0);
+    assert!(read, "{w:?}");
+    let texts = text_of(&d.layers[0]);
+    // The first page's type, where the art has it: 50 above the artboard's top.
+    assert_eq!(texts.iter().map(|t| t.plain_text()).collect::<Vec<_>>(), ["Hi"], "{w:?}");
+    let [.., e, f] = texts[0].xf.as_coeffs();
+    assert!((e - 30.0).abs() < 1e-6 && (f + 10.0).abs() < 1e-6, "{:?}", texts[0].xf);
+}
+
 #[test]
 fn an_ai_file_that_cant_be_read_through_its_editing_data_keeps_its_pdf_part() {
     let pdf = pdf_part(10.0, 86.0);
