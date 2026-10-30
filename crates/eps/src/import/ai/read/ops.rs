@@ -79,6 +79,7 @@ impl<'a> Reader<'a> {
             self.layer_state = None;
         }
         let group_ended = std::mem::take(&mut self.group_ended);
+        let mesh_ended = std::mem::take(&mut self.mesh_ended);
         let vals = self.operands();
         let vals = self.take_head(vals);
         // Only `Bh` reads an undefined number. Anywhere else it would reach a point or a size, so
@@ -201,7 +202,7 @@ impl<'a> Reader<'a> {
                 }
             }
             // Transparency and state.
-            "Xy" => self.transparency(&vals),
+            "Xy" => self.transparency(&vals, mesh_ended),
             // A group's own state (`Xd`, `6 () XW`) without an `Xy` keeps the current transparency, as
             // the file's PDF part draws it. A look's group (`9 () XW`) has no state of its own.
             "Xd" if group_ended => {
@@ -388,8 +389,9 @@ impl<'a> Reader<'a> {
         });
     }
 
-    /// `mode opacity isolate knockout shape Xy`; after a group's end, the group's too.
-    fn transparency(&mut self, vals: &[V]) {
+    /// `mode opacity isolate knockout shape Xy`; after a group's end, the group's too, and right
+    /// after a gradient mesh's `/End X!` (before its `Xd` and `XW`), the mesh's.
+    fn transparency(&mut self, vals: &[V], mesh_ended: bool) {
         let n = Self::nums(vals);
         let [mode, opacity, rest @ ..] = n.as_slice() else { return };
         let gs = &mut self.gs;
@@ -403,7 +405,9 @@ impl<'a> Reader<'a> {
         };
         gs.knockout_shape = rest.get(2).is_some_and(|v| *v != 0.0);
         let gs = self.gs.clone();
-        if self.last_object().is_some_and(|n| matches!(n.kind, NodeKind::Group { .. } | NodeKind::Compound { .. })) {
+        if self.last_object().is_some_and(|n| {
+            matches!(n.kind, NodeKind::Group { .. } | NodeKind::Compound { .. }) || (mesh_ended && matches!(n.kind, NodeKind::Mesh(_)))
+        }) {
             if let Some(n) = self.last_object() {
                 n.opacity = gs.opacity;
                 n.blend = gs.blend;
