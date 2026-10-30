@@ -246,6 +246,27 @@ pub(super) fn stroke_layer(paint: Paint, opacity: f32, p: &StrokeProps, scale: f
 /// The most entries of a dash array kept (an even count keeps it a pattern of dashes and gaps).
 const MAX_DASH_ENTRIES: usize = 64;
 
+/// The area stroke `p` paints along `path` (in its own space, before `transform`), in the document:
+/// where a shading painting the stroke shows. Width, caps, joins and dashes as [`stroke_layer`]
+/// takes them. `None` when it paints nothing.
+pub(super) fn stroke_outline(path: &BezPath, transform: Affine, p: &StrokeProps) -> Option<BezPath> {
+    let scale = mean_scale(transform);
+    if !(scale.is_finite() && scale > 1e-9) {
+        return None;
+    }
+    let mut style =
+        kurbo::Stroke::new(line_width(p, scale) / scale).with_join(p.line_join).with_caps(p.line_cap).with_miter_limit(p.miter_limit as f64);
+    let dashes: Vec<f64> = p.dash_array.iter().take(MAX_DASH_ENTRIES).map(|v| *v as f64).collect();
+    let dash = Dash { pattern: dashes.clone(), offset: p.dash_offset as f64, align_corners: false };
+    if dash.is_dashed() {
+        style = style.with_dashes(dash.offset, dashes);
+    }
+    // To a hundredth of a point in the document.
+    let mut out = kurbo::stroke(path.iter(), &style, &kurbo::StrokeOpts::default(), 0.01 / scale);
+    out.apply_affine(transform);
+    (!out.elements().is_empty()).then_some(out)
+}
+
 pub(crate) fn round3(v: f32) -> f32 {
     (v * 1000.0).round() / 1000.0
 }
