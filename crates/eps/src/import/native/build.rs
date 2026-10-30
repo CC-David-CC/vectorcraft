@@ -179,7 +179,12 @@ pub(super) fn build_from(
         return Err("its type is to come in as outlines, which only its page has".into());
     }
     if infos.iter().all(|i| !i.shown) && !shown.is_empty() {
-        return Err("its page has text, and its layers have no text objects to put it in".into());
+        if !in_placed_files(&shown, &doc, &placed_elsewhere) {
+            return Err("its page has text, and its layers have no text objects to put it in".into());
+        }
+        // The page's type is all inside placed files: it is theirs, which their previews show, and
+        // needs no text object.
+        shown.clear();
     }
     // The page's type is compared with every text object of the layers: that has its limits.
     if infos.len() > MAX_SLOTS || infos.len().saturating_mul(shown.len()) > MAX_PAIRS {
@@ -288,6 +293,37 @@ fn elsewhere(doc: &Document, placed: &[(NodeId, Affine)]) -> Option<Document> {
 fn same_size(r: Option<Rect>, page: &Document) -> bool {
     let (Some(r), Some(p)) = (r, page.artboards.first().map(|a| a.rect)) else { return false };
     (r.width() - p.width()).abs() <= 0.5 && (r.height() - p.height()).abs() <= 0.5
+}
+
+/// Does all of `objects` (the page's text objects) lie inside placed files that show in `doc`? The
+/// page draws a placed file, type and all, where the layers show its preview (a linked image, see
+/// `ai::Reader::end_place`), at its first placement or at the other one that `placed` lists (see
+/// [`elsewhere`]).
+fn in_placed_files(objects: &[Vec<Arc<Node>>], doc: &Document, placed: &[(NodeId, Affine)]) -> bool {
+    let inside = |d: &Document| {
+        let mut files = vec![];
+        placed_files(&d.layers, &mut files);
+        !files.is_empty()
+            && objects
+                .iter()
+                .all(|o| extent(o).is_some_and(|r| files.iter().any(|f: &Rect| f.inflate(OUTLINE_REACH, OUTLINE_REACH).contains_rect(r))))
+    };
+    inside(doc) || elsewhere(doc, placed).is_some_and(|other| inside(&other))
+}
+
+/// Where the placed files that show in `nodes` are: the linked images the editing data's reader
+/// makes of them.
+fn placed_files(nodes: &[Arc<Node>], out: &mut Vec<Rect>) {
+    for n in nodes.iter().filter(|n| n.visible) {
+        match &n.kind {
+            NodeKind::Image(im) if im.link.is_some() => out.extend(n.visual_bounds()),
+            _ => {
+                if let Some(c) = n.children() {
+                    placed_files(c, out);
+                }
+            }
+        }
+    }
 }
 
 /// Does the editing data's first artboard `board` (in the document read from it: art space through

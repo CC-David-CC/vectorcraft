@@ -266,6 +266,57 @@ fn an_ai_file_with_an_image_too_large_for_its_editing_data_comes_in_as_its_pdf_p
     assert!(read, "{warnings:?}");
 }
 
+/// A `.ai` whose layers hold a placed PDF and no text object: its PDF part draws the placed file,
+/// type and all, where the layers show the file's preview. That type is the placed file's and needs
+/// no text object, so the file comes in from its layers, the placed file where its matrix takes the
+/// canvas point of art space's origin or at the corner of its box (see
+/// `a_placed_file_at_its_boxs_corner_matches_the_page`). Type outside the placed file still needs
+/// one, and without it the file comes in as its PDF part.
+#[test]
+fn type_of_the_page_inside_a_placed_file_needs_no_text_object() {
+    // A file placed on (30, 30)–(70, 70) whose preview is 2 × 2 pixels of half-transparent black,
+    // as in `a_placed_file_at_its_boxs_corner_matches_the_page`; with the template box, the canvas
+    // point of art space's origin puts it off the page, and the box's corner on it.
+    let place = format!(
+        "%AI5_BeginPlace\n%%FileType: 1\n[1 0 0 -1 -7970 8070] 8000 8000 8040 8040 4 4 0\n(/files/pages.pdf)`\n\
+         %AI26_BeginPlacedObjectPreview\n2 2 8 32 17 {}\n%AI26_EndPlacedObjectPreview\n~\n%AI5_EndPlace\n",
+        "\x7f\0\0\0".repeat(4)
+    );
+    let at_origin = native(&layer("Pages", true, &place));
+    let at_corner = at_origin.replace("%AI5_NumLayers", "%AI3_TemplateBox: 100 50 100 50\n%AI5_NumLayers");
+    // The PDF part: the placed file's page in 50% grey, and type at (`x`, 55).
+    let pdf = |x: f64| {
+        let mut d = Document::new(100.0, 100.0);
+        let grey = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
+        let rect = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
+        let page = Node::path(
+            d.alloc_id(),
+            rect,
+            vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(grey)], ..Default::default() },
+        );
+        let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
+        let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(x, 55.0), "Hi", style);
+        let text = Node::new(d.alloc_id(), NodeKind::Text(Box::new(text)));
+        let layer = d.layers[0].id;
+        d.insert(Some(layer), 0, page).unwrap();
+        d.insert(Some(layer), 1, text).unwrap();
+        d
+    };
+    for data in [&at_origin, &at_corner] {
+        let (d, warnings, read) = crate::layered_ai(&private(data), pdf(38.0), vec![], false, false, 1.0);
+        assert!(read, "{warnings:?}");
+        assert_eq!(names(&d), ["Pages"]);
+        let mut links = vec![];
+        d.visit_images(|_, im| links.extend(im.link.as_ref().map(|l| l.path.clone())));
+        assert_eq!(links, ["/files/pages.pdf"], "{warnings:?}");
+        assert!(warnings.iter().all(|w| !w.contains("no text object")), "the type is the placed file's, not left out: {warnings:?}");
+        // Type beside the placed file is a text object's, which the layers don't have.
+        let (_, warnings, read) = crate::layered_ai(&private(data), pdf(5.0), vec![], false, false, 1.0);
+        assert!(!read, "{warnings:?}");
+        assert!(warnings.iter().any(|w| w.contains("its layers have no text objects")), "{warnings:?}");
+    }
+}
+
 /// A palette of `[None]` and White, and a color group `Inks` holding a spot color, Red ink.
 const PALETTE: &str =
     "%AI5_BeginPalette\n0 0 Pb\n0 0 0 0 1 1 1 Xa\n(White)\nPc\n1 (Inks) 1 Pg\n0.06 0.98 1 0 (Red ink) 0 x\n(Red ink)\nPc\nPB\n%AI5_EndPalette\n";
