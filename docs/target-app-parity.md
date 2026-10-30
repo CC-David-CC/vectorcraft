@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Contextual task bar: stays up through a click on another object, hides only for a drag (#4681); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Place: a photo's EXIF orientation turns it upright (#4284); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -1047,6 +1047,7 @@ Moved from the ROADMAP's "Shipped so far" on 2026-10-10. Update it when a featur
   - A Word paragraph justified with a low, medium or high kashida length places justified with Insert Kashidas set to Short, Medium or Long (`file.place`, `crates/engine/src/tests/textimport.rs`).
   - On the desktop, File › Place reads and decodes files off the UI thread, one at a time, and places each once it is read, with "Placing" in the status bar and the busy spinner until then: the Place dialog's OK, a file dropped on the canvas, a click or drag of the place cursor, and the OK of the PDF, DXF and text import options. The files and thumbnails the place cursor is loaded with are read the same way, and the Place dialog's lines about its files are read on a thread of their own. Files are placed in the order they were started; a file is not placed while a dialog is open or a drag is under way, and a file whose document was closed meanwhile is not placed. `file.place` and `file.place.queue` over MCP and scripts reply as before.
   - The pixels of a PNG, JPEG, GIF or WebP file that Place decodes to check them are kept in the image store the renderers share, so the canvas's first frame with the placed image draws them without decoding the file again on the UI thread: File › Place, a file dropped on the canvas, a click or drag of the place cursor, `file.place`, and Paste of such an image. A CMYK JPEG is still decoded when it is first drawn (`crates/ui-egui/src/placing.rs`, `crates/render/src/tests.rs`).
+  - A photo whose EXIF orientation turns or flips it (a camera held upright or upside down) is placed and opened upright, as it was taken; the image is stored as it is seen (#4284).
   - File › Place and a file dropped on the canvas refuse a PNG, JPEG, GIF or WebP file whose pixels can't be read, such as one cut short by a download or a sync still running, and the status bar shows "Couldn't place <name>: the image's pixels can't be read". Paste and Relink refuse such an image too, and Update Links, or Open when it reads the file again, counts it as missing. A JPEG cut short still places when its pixels can be decoded (`file.place`, `crates/engine/src/tests_place.rs`).
   - On the desktop, Copy and Cut make the system clipboard's formats (text, SVG, PDF, PNG) from a copy of the clipboard on the thread that writes background saves and exports, and write them when they are ready; while that thread has a save, an export, a print or a recovery copy to finish, they are made and written at once. Until they are written, Paste in VectorCraft takes the internal clipboard, and while a text field or the Type tool has the keyboard the app waits for them. Another Copy or Cut, or a copy of text in VectorCraft, drops them.
   - On the desktop with Enable Background Export on (Preferences › File Handling), File › Package… collects the linked files and fonts and writes the package from the document as it was at OK on the thread that writes background saves and exports, with "Packaging" in the status bar and the busy spinner until it is written; a save of unsaved changes that Package starts is written first. `file.package` over MCP and scripts replies as before.
@@ -1261,6 +1262,7 @@ undo step, with any adjustment and its params; bad requests refused) and `addons
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | Place: a photo's EXIF orientation turns it upright (#4284); scores and estimates unchanged |
 | 2026-10-30 | minor | Contextual task bar: stays up through a click on another object, hides only for a drag (#4681); scores and estimates unchanged |
 | 2026-10-30 | minor | Draw Inside marks the corners of the object it draws into (#4319); scores and estimates unchanged |
 | 2026-10-30 | minor | Smart Pen add-on (a VectorCraft addition): evidence added; scores unchanged. |
