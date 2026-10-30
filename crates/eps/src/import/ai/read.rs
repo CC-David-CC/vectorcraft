@@ -183,6 +183,8 @@ struct Reader<'a> {
     blend_budget: usize,
     /// A group just ended, its state (`Xy`, `Xd`, `XW`) not yet read.
     group_ended: bool,
+    /// A gradient mesh just ended (`/End X!`), its own state (`Xy`) not yet read.
+    mesh_ended: bool,
     /// A layer's own state (`Xy` after its art, before `LB`), until something says the art moves on.
     layer_state: Option<(f32, BlendMode, bool, Knockout)>,
     /// Painted copies of clipping paths that have a fill (drawn under what they clip).
@@ -288,6 +290,7 @@ impl<'a> Reader<'a> {
             compound_groups: HashSet::new(),
             text_looks: HashSet::new(),
             group_ended: false,
+            mesh_ended: false,
             layer_state: None,
             styles: HashMap::new(),
             palette: super::palette::Palette::default(),
