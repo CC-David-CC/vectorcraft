@@ -1019,7 +1019,10 @@ fn knife_alt_drag_cuts_along_a_straight_line() {
     let shift_alt = Mods { shift: true, alt: true, ..Default::default() };
     // From (150, 50) to (250, 250) the line crosses the rectangle's top at x 175 and its bottom at
     // x 225, so the left piece holds 10000 pt²; a vertical cut at x 150 leaves 5000 pt².
-    for (m, to, left) in [(alt, (250.0, 250.0), 10000.0), (shift_alt, (160.0, 240.0), 5000.0)] {
+    for (m, to, left, top, bottom) in [
+        (alt, (250.0, 250.0), 10000.0, Point::new(175.0, 100.0), Point::new(225.0, 200.0)),
+        (shift_alt, (160.0, 240.0), 5000.0, Point::new(150.0, 100.0), Point::new(150.0, 200.0)),
+    ] {
         let mut s = session();
         rect(&mut s, 100.0, 100.0, 200.0, 100.0);
         s.execute("select.none", &json!({})).unwrap();
@@ -1029,6 +1032,12 @@ fn knife_alt_drag_cuts_along_a_straight_line() {
         assert_eq!(ps.len(), 2, "{m:?}");
         let small = ps.iter().map(|(_, p)| area(p)).fold(f64::INFINITY, f64::min);
         assert!((small - left).abs() < 30.0, "{m:?}: {small}");
+        // The Knife leaves a narrow slit, so each piece's boundary lies just beside the center line.
+        for (_, piece) in &ps {
+            let anchors = &piece.subpaths[0].anchors;
+            assert!(anchors.iter().any(|a| a.p.distance(top) < 0.1), "{m:?}: missing top cut boundary near {top:?}: {anchors:?}");
+            assert!(anchors.iter().any(|a| a.p.distance(bottom) < 0.1), "{m:?}: missing bottom cut boundary near {bottom:?}: {anchors:?}");
+        }
     }
 }
 
