@@ -290,7 +290,8 @@ pub(super) fn recessed_text(
         d.insert_temp(id, buf.clone());
         d.insert_temp(focus_id, focused);
     });
-    let enter_commit = rows == 1 && editing && ui.input(|i| i.key_pressed(egui::Key::Enter));
+    // Plain Enter only: Ctrl/Cmd+Enter keeps editing a field that takes it (X and Y in Transform).
+    let enter_commit = rows == 1 && editing && ui.input(|i| i.key_pressed(egui::Key::Enter) && i.modifiers.is_none());
     let commit = resp.lost_focus() || kept || enter_commit;
     (buf, commit, resp, rect)
 }
