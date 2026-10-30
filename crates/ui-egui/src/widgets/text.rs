@@ -248,7 +248,9 @@ pub(super) fn recessed_text(
             ui.set_min_size(vec2(width, height));
             let rect = ui.max_rect();
             let now = ui.input(|i| i.time);
-            let invalid = ui.data(|d| d.get_temp::<f64>(id.with("invalid-flash"))).is_some_and(|end| now <= end);
+            let flash_end = ui.data(|d| d.get_temp::<f64>(id.with("invalid-flash")));
+            let invalid = flash_end.is_some_and(|end| now <= end);
+            eprintln!("RECESSED_TEXT_DRAW: now={} flash_end={:?} invalid={}", now, flash_end, invalid);
             if invalid {
                 ui.ctx().request_repaint();
             }
@@ -291,6 +293,9 @@ pub(super) fn recessed_text(
     });
     let enter_commit = rows == 1 && editing && ui.input(|i| i.key_pressed(egui::Key::Enter));
     let commit = resp.lost_focus() || kept || enter_commit;
+    if editing || enter_commit || commit {
+        eprintln!("RECESSED_TEXT: editing={} commit={} enter_commit={} buf={:?}", editing, commit, enter_commit, buf);
+    }
     (buf, commit, resp, rect)
 }
 
