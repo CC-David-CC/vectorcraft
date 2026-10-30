@@ -246,6 +246,9 @@ pub(super) const SKIPPED: &[(&str, &str)] = &[
     ("BeginSymbolList", "EndSymbolList"),
     ("BeginTextDocument", "EndTextDocument"),
     ("BeginEncoding", "EndEncoding"),
+    // The printer's crop marks, drawn after the layers (`userdict /AI3_noCropMarks known not {
+    // … } if`); the crop area they mark is `%AI3_Cropmarks`.
+    ("BeginCrops", "EndCrops"),
 ];
 
 /// The note for versioned content whose `%AI17_End_Versioned_Content` is missing: every

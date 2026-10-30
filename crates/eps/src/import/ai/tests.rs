@@ -1929,3 +1929,15 @@ fn a_blend_record_is_read_to_its_length() {
     let (blend, warnings) = read_blend(&blend_file("%_10 50 m\n%_110 50 L\n", [Some("A"), Some("B")], &longer));
     assert!(matches!(blend.kind, NodeKind::Blend { .. }), "{warnings:?}");
 }
+
+/// The printer's crop marks Illustrator draws after the last layer (`%AI3_BeginCrops`, inside
+/// `userdict /AI3_noCropMarks known not { … } if`) aren't art outside the layers: the file reads
+/// from its layers, without them (the crop area is `%AI3_Cropmarks`).
+#[test]
+fn crop_marks_after_the_layers_are_not_art() {
+    let crops = "%AI3_BeginCrops\nuserdict /AI3_noCropMarks known not {\n0 A\nu\n0 R\n1 1 1 1 ([Registration]) 0 XS\n\
+                 0 J 0 j 0.5 w 4 M []0 d\n0 XR\n-9 -400 m\n-36 -400 L\nS\nU\n} if\n%AI3_EndCrops\n";
+    let r = read_ok(&format!("{}{crops}", layer(&(rect_path(0.0, 0.0, 1.0, 1.0) + "f\n"))));
+    assert_eq!(art(&r.doc).len(), 1);
+    assert_eq!(r.doc.layers.len(), 1);
+}

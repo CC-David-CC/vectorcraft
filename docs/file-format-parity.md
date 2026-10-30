@@ -1,6 +1,6 @@
 # File format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (`.ai`/EPS editing data: a gradient mesh takes the transparency written after it) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (`.ai` import: a page's type inside placed files needs no text object) · **Target:** Adobe Illustrator 2026 (30.x)
 
 Every format Illustrator opens, places, saves or exports, against VectorCraft's format table (`FORMATS`,
 `OPEN_EXTS`, `PLACE_EXTS` in `crates/engine/src/cmd/fileio/formats.rs`). Illustrator's list comes from its public
@@ -132,6 +132,7 @@ the app's own editing copy of a file (an EPS after its `%%EOF`, a `.ai`'s `AIPri
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | `.ai` import: a file whose layers hold placed (linked) PDFs and no text object comes in from its layers when all of its page's type lies inside the placed files (at either of their placements): the PDF part draws each placed file, type and all, where the layers show its preview, so that type needs no text object. Such a file came in as its PDF part, saying its layers had no text objects for its page's text; type outside the placed files still needs one. Own-fixture test in `import::tests_native`; scores unchanged |
 | 2026-10-30 | minor | `.ai`/EPS editing data: a gradient mesh takes the transparency (`Xy`) written right after its `/End X!`, before its `Xd` and `XW`, as a group takes the one after its `U`; it was read as the next object's, so a Multiply shadow mesh painted opaque white over the art under it, where the file's page shows the shadow. A user's file now draws such a mesh as its page does. Own-fixture test in `import::ai::tests`; scores unchanged |
 | 2026-10-30 | minor | `.ai`/EPS editing data: a gradient mesh corner whose handle weights are 0 (one or both; the others are 1) is read like one whose weights are 1, so a mesh with such corners no longer leaves the whole file coming in as its page or PDF part; other weights still leave the mesh unread. Checked against the pages of two users' files: one opens from its layers 0.6% from its page, the other with 728 live meshes instead of its PDF part's 65,558 patches. Test `import::ai::mesh::tests::corners_with_handle_weights_of_zero_are_read`; scores unchanged |
 | 2026-10-30 | minor | `.ai` import: a PDF part whose pages are cropped to the art is recognised in a `UserUnit` page's units too (the art's box in those units, the artboard not the page in points), and its type is read from the first page only, since every such page holds all the art again: the copies on later pages were moved as the first page's and could be put into the layers' text objects. A page cropped to the art is taken only when every page is that box. Tests `import::tests_native::a_user_unit_page_cropped_to_the_art_is_read_in_its_units`, `type_on_the_copies_of_a_page_cropped_to_the_art_is_read_once`; scores unchanged |
