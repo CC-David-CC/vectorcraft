@@ -247,7 +247,22 @@ pub(super) fn build_from(
             let unseen = prune_unseen(&frame, &mut view, &mut doc);
             let unseen_note = |n: usize| (n > 0).then(|| format!("{n} {UNSEEN_TEXT}"));
             match compare(&frame, &mut view, &doc) {
-                Ok(note) => notes.extend(unseen_note(unseen).into_iter().chain(note)),
+                // Placed files at the other point their data gives, where that draws closer to the
+                // page: a small image in the wrong place differs too little to fail.
+                Ok(note) => {
+                    let closer = other.and_then(|mut other| {
+                        let unseen = prune_unseen(&frame, &mut view, &mut other);
+                        let closer = view.difference(&other, frame.rect).any < view.difference(&doc, frame.rect).any;
+                        closer.then(|| compare(&frame, &mut view, &other).ok()).flatten().map(|note| (other, unseen, note))
+                    });
+                    match closer {
+                        Some((other, unseen, note)) => {
+                            doc = other;
+                            notes.extend(unseen_note(unseen).into_iter().chain(note));
+                        }
+                        None => notes.extend(unseen_note(unseen).into_iter().chain(note)),
+                    }
+                }
                 // Placed files at the other point their data gives, where that draws as the page.
                 Err(why) => match other.map(|mut other| {
                     let unseen = prune_unseen(&frame, &mut view, &mut other);
