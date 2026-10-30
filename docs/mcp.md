@@ -402,9 +402,10 @@ alpha channel takes only a spot color, black or white; a process color is refuse
 For `draw_shape` and `draw_path`, omitted paint fields inherit the current [new-art appearance](#new-art).
 For a filled shape or path without an outline, pass an explicit `fill` and `stroke: "none"`.
 Lines start with no fill and a visible stroke.
-The Fill/Stroke proxy commands run through `run_command`: `paint.invert` and `paint.complement` recolour the active
-proxy keeping each colour's model, `paint.lastColor` / `paint.lastGradient` re-apply the last solid colour or gradient,
-and `paint.recent` returns the recent colours that every paint command (and the eyedropper) feeds.
+The Fill/Stroke proxy commands run through `run_command`: `paint.invert` and `paint.complement` recolor the active
+proxy, including a grayscale image's colorized fill, while keeping each color's model. `paint.lastColor` /
+`paint.lastGradient` re-apply the last solid color or gradient, and `paint.recent` returns the recent colors that every
+paint command (and the eyedropper) feeds.
 `paint.proxies` returns what the proxies show: the fill and stroke, which one is active, and whether the selected
 objects' fills or strokes differ (`fillMixed` / `strokeMixed`, drawn as a "?" proxy).
 
@@ -1809,13 +1810,15 @@ the scope and what differs from the public documentation.
 ## Edit Colors and Recolor Artwork
 
 `edit.colors.invert`, `edit.colors.toCMYK`, `edit.colors.toGrayscale`, `edit.colors.toRGB`, `edit.colors.saturate`,
-`edit.colors.adjustBalance` and `recolor.apply` recolour everything inside the selection (or `ids`) in one undo step:
-fills, strokes, text, gradient stops, gradient-mesh points, embedded images (a recoloured copy of the image; linked
-images are left alone) and the tiles of pattern fills and strokes (a recoloured copy saved as a new pattern swatch,
-e.g. "Dots 2"; the original pattern is untouched). `includeImages: false` / `includePatterns: false` leave images or
-patterns out. The Blend commands also grade gradient meshes, which keep their shading. `edit.colors.saturate` needs
-`intensity`, a number from -100 to 100 (a number outside the range counts as its nearest end). Without one, or with a
-value that is not a number, it answers `` missing number `intensity` `` and changes nothing.
+`edit.colors.adjustBalance` and `recolor.apply` recolor everything inside the selection (or `ids`) in one undo step:
+fills, strokes, text, gradient stops, gradient-mesh points, colorized image fills, embedded images (a recolored copy of
+the image; linked images are left alone) and the tiles of pattern fills and strokes (a recolored copy saved as a new
+pattern swatch, e.g. "Dots 2"; the original pattern is untouched). Colorized image fills are recolored when fills are in
+scope, but their pixels are never recolored. `includeImages: false` leaves other images' pixels unchanged.
+For `edit.colors.*`, `fill: false` leaves colorized image fills unchanged. `recolor.apply` always includes fills.
+`includePatterns: false` leaves patterns out. The Blend commands also grade gradient meshes, which keep their shading.
+`edit.colors.saturate` needs `intensity`, a number from -100 to 100 (a number outside the range counts as its nearest
+end). Without one, or with a value that is not a number, it answers `` missing number `intensity` `` and changes nothing.
 
 ```json
 {"name":"run_command","arguments":{"command":"recolor.colors","params":{}}}
