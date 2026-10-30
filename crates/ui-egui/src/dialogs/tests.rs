@@ -2535,6 +2535,12 @@ fn color_halftone_invalid_input_does_not_revert_to_sub_minimum_value() {
     frame(&mut app, vec![egui::Event::Text("0.5 px".into())]);
     frame(&mut app, vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }]);
     assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
+    let s1 = frame(&mut app, vec![]);
+    let shows_clamped_text = s1.shapes.iter().any(|s| match &s.shape {
+        egui::Shape::Text(t) => t.galley.text().trim() == "4 pt",
+        _ => false,
+    });
+    assert!(shows_clamped_text, "rendered field must show clamped '4 pt' text after sub-minimum commit");
 
     // 2. Return focus to Max Radius with Shift+Tab, type invalid text, and commit with Enter
     frame(
@@ -2557,6 +2563,11 @@ fn color_halftone_invalid_input_does_not_revert_to_sub_minimum_value() {
         _ => false,
     });
     assert!(has_rejection_highlight, "Max Radius must display rejection highlight after invalid input");
+    let shows_clamped_after_invalid = next_out.shapes.iter().any(|s| match &s.shape {
+        egui::Shape::Text(t) => t.galley.text().trim() == "4 pt",
+        _ => false,
+    });
+    assert!(shows_clamped_after_invalid, "rendered field must retain '4 pt' text after invalid input rejection");
 }
 
 #[test]
