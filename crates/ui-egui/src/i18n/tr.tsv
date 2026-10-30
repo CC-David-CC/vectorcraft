@@ -3931,6 +3931,7 @@ axis	Both	Her İkisi
 @msg	no document	belge yok
 @msg	no document open	hiçbir belge açık değil
 @msg	no effect applied yet	henüz hiçbir efekt uygulanmadı
+@msg	no Pathfinder operation applied yet	henüz hiçbir Yol Bulucu işlemi uygulanmadı
 @msg	no effect at index {k}	{k} endeksinde etkisi yok
 @msg	no end record	son kayıt yok
 @msg	no file manager here	burada dosya yöneticisi yok

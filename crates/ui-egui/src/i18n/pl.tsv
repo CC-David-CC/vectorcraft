@@ -4288,6 +4288,7 @@ imageTrace	Outline	Kontur
 @msg	no document	brak dokumentu
 @msg	no document open	brak otwartego dokumentu
 @msg	no effect applied yet	nie zastosowano jeszcze żadnego efektu
+@msg	no Pathfinder operation applied yet	nie zastosowano jeszcze żadnej operacji odnajdywania ścieżek
 @msg	no effect at index {k}	brak efektu o indeksie {k}
 @msg	no end record	brak rekordu końcowego
 @msg	no file manager here	brak menedżera plików

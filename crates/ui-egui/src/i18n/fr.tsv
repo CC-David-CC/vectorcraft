@@ -4154,6 +4154,7 @@ axis	Both	Les deux
 @msg	no document	aucun document
 @msg	no document open	aucun document ouvert
 @msg	no effect applied yet	aucun effet appliqué pour l’instant
+@msg	no Pathfinder operation applied yet	aucune opération Pathfinder appliquée pour l’instant
 @msg	no effect at index {k}	aucun effet à l’indice {k}
 @msg	no end record	aucun enregistrement de fin
 @msg	no file manager here	aucun gestionnaire de fichiers ici

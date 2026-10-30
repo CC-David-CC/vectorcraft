@@ -4462,6 +4462,7 @@ theme	Appearance	Giao diện
 @msg	no document	không có tài liệu
 @msg	no document open	không có tài liệu nào đang mở
 @msg	no effect applied yet	chưa áp dụng hiệu ứng
+@msg	no Pathfinder operation applied yet	chưa áp dụng thao tác Pathfinder
 @msg	no effect at index {k}	không có hiệu ứng tại chỉ mục {k}
 @msg	no end record	không có bản ghi kết thúc
 @msg	no file manager here	không có trình quản lý tệp ở đây

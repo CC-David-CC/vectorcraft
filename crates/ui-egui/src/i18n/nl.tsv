@@ -4163,6 +4163,7 @@ imageTrace	Outline	Contour
 @msg	no document	geen document
 @msg	no document open	geen document geopend
 @msg	no effect applied yet	nog geen effect toegepast
+@msg	no Pathfinder operation applied yet	nog geen Pathfinder-bewerking toegepast
 @msg	no effect at index {k}	geen effect op index {k}
 @msg	no end record	geen eindrecord
 @msg	no file manager here	hier is geen bestandsbeheerder

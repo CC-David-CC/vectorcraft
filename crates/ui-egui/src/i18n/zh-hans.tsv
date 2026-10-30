@@ -4257,6 +4257,7 @@ imageTrace	Outline	轮廓
 @msg	no PNG encoder	没有 PNG 编码器
 @msg	no document open	没有打开的文档
 @msg	no effect applied yet	尚未应用任何效果
+@msg	no Pathfinder operation applied yet	尚未应用任何路径查找器操作
 @msg	no such perspective grid preset	没有此透视网格预设
 @msg	no such recent file	没有此最近使用的文件
 @msg	no such recent font	没有此最近使用的字体

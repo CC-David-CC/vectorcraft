@@ -4117,6 +4117,7 @@ theme	Appearance	Εμφάνιση
 @msg	no document	δεν υπάρχει έγγραφο
 @msg	no document open	δεν υπάρχει ανοιχτό έγγραφο
 @msg	no effect applied yet	δεν έχει εφαρμοστεί ακόμη εφέ
+@msg	no Pathfinder operation applied yet	δεν έχει εφαρμοστεί ακόμη λειτουργία Pathfinder
 @msg	no effect at index {k}	δεν υπάρχει εφέ στον δείκτη {k}
 @msg	no end record	λείπει η εγγραφή τέλους
 @msg	no file manager here	δεν υπάρχει διαχειριστής αρχείων εδώ

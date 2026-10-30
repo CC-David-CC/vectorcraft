@@ -4041,6 +4041,7 @@ axis	Both	И двете
 @msg	no document	няма документ
 @msg	no document open	няма отворен документ
 @msg	no effect applied yet	все още няма приложен ефект
+@msg	no Pathfinder operation applied yet	все още няма приложена операция на Pathfinder
 @msg	no effect at index {k}	няма ефект на индекс {k}
 @msg	no end record	няма краен запис
 @msg	no file manager here	няма файлов мениджър тук
