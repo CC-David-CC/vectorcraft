@@ -1,6 +1,6 @@
 # UI and interaction parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Contextual task bar: stays up through a click on another object, hides only for a drag (#4681); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (View › Hide Artboards hides their edges and shows the canvas as paper (#4038); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 ## Feature submission evidence
 
@@ -232,6 +232,7 @@ tools, never checked side by side) isn't captured row by row.
 | Artboard Options: X and Y beside a reference point locator, counted from the ruler origin; a typed X or Y moves the artboard's reference point there, a new Width or Height keeps it in place | done | #1876; as the Transform panel's and the Control bar's artboard X and Y, with the locator they and Properties share; the shape dialogs' X and Y (the click position) stay hidden. Pointer and key tests in `dialogs/tests.rs` |
 | Artboard Options shares existing presets/orientation and drafts artwork or selected-art fitting until OK | done | Fit changes only the active artboard and preserves artwork positions; Cancel leaves the document unchanged; newer multi-artboard behavior retained; fitting after draft resizing uses all drawn document artwork and document/revision-scoped bounds; selected art may span boards |
 | Artboard Options › Display: Show Center Mark and Show Cross Hairs ([public source](https://helpx.adobe.com/illustrator/desktop/create-manage-artboards/organize-manage-artboards/modify-display-settings-of-artboards.html)) | done | Per-artboard checkboxes (`artboard.setProps`/`artboard.new` `showCenterMark`, `showCrossHairs`, one undo step); the canvas draws a cross 12 points across on screen at the center and lines from the middle of each side through it, 1 point wide on screen at any zoom and turned with the view; exports and print leave them out; tests `an_artboard_shows_its_center_mark_and_cross_hairs`, `artboard_options_show_center_mark_and_cross_hairs` |
+| View › Hide Artboards (Ctrl/Cmd+Shift+H) hides the artboards' edges, bleeds, marks and names and shows the whole canvas as paper (white, or Simulate Colored Paper's colour); the Artboard tool still shows them | done | #4038, `canvas::tests::hidden_artboards_leave_a_paper_canvas_without_edges` |
 | Artboard Options › Display: Show Video Safe Areas and Video Ruler Pixel Aspect Ratio ([public source](https://helpx.adobe.com/illustrator/desktop/create-manage-artboards/organize-manage-artboards/set-video-display-options-for-artboards.html)) | done | #2849; per artboard (`artboard.setProps`/`artboard.new` `showVideoSafeAreas`, `videoRulerPixelAspectRatio` 0.1–10, default 1; one undo step; native format). The page gives no safe-area numbers: our choice is [EBU R 95](https://tech.ebu.ch/docs/r/r095.pdf)'s, the action-safe area 3.5% and the title-safe area 5% in from each edge, outlined 1 point wide on the canvas and turned with the view; exports and print leave them out. Tests `an_artboard_shows_its_video_safe_areas`, `artboard_options_show_video_display_options`, `artboard_video_display_options_*` |
 | Shape tools: Shift constrains, Alt from centre, Space moves while dragging, arrows change sides/points/rows | done | |
 | Polygon/Star exact-size placement remembers the chosen sides/points for later drags and dialog openings; Cancel preserves the previous count | done | Session tool options; existing dialog-opening gestures retained; regression in `toolbar.rs` |
@@ -366,6 +367,7 @@ separate. Scores and hours unchanged. [Behavior and command details](development
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | View › Hide Artboards hides their edges and shows the canvas as paper (#4038); scores and estimates unchanged |
 | 2026-10-30 | minor | Contextual task bar: stays up through a click on another object, hides only for a drag (#4681); scores and estimates unchanged |
 | 2026-10-30 | minor | Draw Inside marks the corners of the object it draws into (#4319); scores and estimates unchanged |
 | 2026-10-30 | minor | Smart Pen add-on (a VectorCraft addition): its tool, panel and Object › Plug-ins › Smart Pen; scores and estimates unchanged |

@@ -8012,3 +8012,29 @@ fn the_task_bar_stays_up_through_a_click_and_gives_way_to_a_drag() {
     frame(&mut app, &ctx, vec![]);
     assert!(task_bar_rect(&ctx).is_some(), "back once the drag ends");
 }
+
+/// #4038: View › Hide Artboards leaves no artboard edges and shows the whole canvas as paper;
+/// the Artboard tool still shows them.
+#[test]
+fn hidden_artboards_leave_a_paper_canvas_without_edges() {
+    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
+    let ctx = egui::Context::default();
+    let look = |app: &mut VectorcraftApp| {
+        let shapes = shapes(app, &ctx);
+        let canvas = app.canvas_rect.unwrap();
+        let paper = shapes.iter().any(|s| matches!(s, Shape::Rect(r) if r.fill == Color32::WHITE && r.rect.contains_rect(canvas)));
+        let edge =
+            shapes.iter().any(|s| matches!(s, Shape::Path(p) if p.closed && p.stroke.color == egui::epaint::ColorMode::Solid(Color32::from_gray(0))));
+        (paper, edge)
+    };
+    assert_eq!(look(&mut app), (false, true), "shown: an edge, the pasteboard round it");
+    app.run("view.artboards", json!({})).unwrap();
+    assert!(!app.ui.view.artboards);
+    assert_eq!(look(&mut app), (true, false), "hidden: paper everywhere, no edge");
+    app.select_tool("artboard");
+    assert!(look(&mut app).1, "the Artboard tool shows them");
+    app.select_tool("selection");
+    app.run("view.artboards", json!({})).unwrap();
+    assert_eq!(look(&mut app), (false, true));
+}
