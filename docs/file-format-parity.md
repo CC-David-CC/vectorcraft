@@ -1,6 +1,6 @@
 # File format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (`.ai` import: the placed files' other placement weighs the page's unseen text again) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (`.ai` import: pages cropped to the art in `UserUnit` units, and their copies' type) · **Target:** Adobe Illustrator 2026 (30.x)
 
 Every format Illustrator opens, places, saves or exports, against VectorCraft's format table (`FORMATS`,
 `OPEN_EXTS`, `PLACE_EXTS` in `crates/engine/src/cmd/fileio/formats.rs`). Illustrator's list comes from its public
@@ -132,6 +132,7 @@ the app's own editing copy of a file (an EPS after its `%%EOF`, a `.ai`'s `AIPri
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | `.ai` import: a PDF part whose pages are cropped to the art is recognised in a `UserUnit` page's units too (the art's box in those units, the artboard not the page in points), and its type is read from the first page only, since every such page holds all the art again: the copies on later pages were moved as the first page's and could be put into the layers' text objects. A page cropped to the art is taken only when every page is that box. Tests `import::tests_native::a_user_unit_page_cropped_to_the_art_is_read_in_its_units`, `type_on_the_copies_of_a_page_cropped_to_the_art_is_read_once`; scores unchanged |
 | 2026-10-30 | minor | `.ai` import: when the layers are compared with the page again with placed files at the corner of their box, the text objects the page doesn't draw are weighed with the images there, from the layers as read: before, the text an image covered at its first placement had already been left out, so a file whose image covered type only there came in without that type or as its PDF part. Test `import::tests_native::text_a_placed_file_covers_only_at_its_first_placement_is_kept`; scores unchanged |
 | 2026-10-30 | minor | `.ai` import: type read from the editing data's text document keeps its case setting (character attribute 12: 1 Small Caps, at Document Setup's default size, 2 All Caps); it came in as typed, so a heading set in All Caps showed in lower or mixed case where the page draws capitals. Test `import::tests_native::type_from_the_text_document_keeps_its_case_setting`; checked locally against a user's files; scores unchanged |
 | 2026-10-30 | minor | PDF import: a patch or triangle mesh shading of up to 16,384 patches comes in as gradient meshes (it was 4,096; Illustrator writes up to 14,355 in files users sent), and a stroke painted with one (how Illustrator writes a freeform gradient on a stroke) is the meshes clipped to the area the stroke paints, with its width, caps, joins and dashes; both came in as a flat grey. In two files of a user's set, the formerly grey area now matches a reference rendering in 99% of its pixels. Own-fixture tests in `tests::import_fidelity`; scores unchanged |
