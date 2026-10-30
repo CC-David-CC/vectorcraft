@@ -7979,3 +7979,36 @@ fn draw_inside_marks_the_corners_of_its_object() {
     app.run("view.drawMode", json!({"mode": "normal"})).unwrap();
     assert_eq!(dashes(&mut app).len(), normal);
 }
+
+/// #4681: a click on another object moves the Contextual Task Bar to it without hiding it for the
+/// press (it flashed); a drag hides it until the drag ends.
+#[test]
+fn the_task_bar_stays_up_through_a_click_and_gives_way_to_a_drag() {
+    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
+    app.run("shape.rectangle", json!({"x": 40, "y": 60, "width": 60, "height": 60})).unwrap();
+    app.run("shape.rectangle", json!({"x": 260, "y": 60, "width": 60, "height": 60})).unwrap();
+    app.select_tool("selection");
+    let ctx = egui::Context::default();
+    for _ in 0..30 {
+        frame(&mut app, &ctx, vec![]);
+    }
+    let first = task_bar_rect(&ctx).expect("the task bar shows under the second rectangle");
+    let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
+    let at = xf.to_screen(Point::new(70.0, 90.0));
+    let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
+    frame(&mut app, &ctx, vec![egui::Event::PointerMoved(at), button(at, true)]);
+    frame(&mut app, &ctx, vec![]);
+    assert!(app.session.tool_busy(), "the press is under way");
+    let pressed = task_bar_rect(&ctx).expect("the task bar stays up through the press");
+    assert!(pressed.center().x < first.center().x - 50.0, "it moved under the rectangle pressed: {pressed:?} from {first:?}");
+    // Dragged, it gives way until the drag ends.
+    let to = at + vec2(40.0, 30.0);
+    frame(&mut app, &ctx, vec![egui::Event::PointerMoved(at + vec2(20.0, 15.0))]);
+    frame(&mut app, &ctx, vec![egui::Event::PointerMoved(to)]);
+    frame(&mut app, &ctx, vec![]);
+    assert!(task_bar_rect(&ctx).is_none(), "hidden while the object is dragged");
+    frame(&mut app, &ctx, vec![button(to, false)]);
+    frame(&mut app, &ctx, vec![]);
+    assert!(task_bar_rect(&ctx).is_some(), "back once the drag ends");
+}
