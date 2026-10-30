@@ -87,6 +87,16 @@ fn dialog_open_flag() -> egui::Id {
     egui::Id::unique("dialog-open")
 }
 
+/// The flag that tells the dialog runner a field rejected an invalid commit on Enter in this frame.
+pub(crate) fn dialog_reject_commit_flag() -> egui::Id {
+    egui::Id::unique("dialog-reject-commit")
+}
+
+/// Suppress confirming an open dialog on Enter during this frame when an invalid value was committed.
+pub(crate) fn reject_dialog_commit(ctx: &egui::Context) {
+    ctx.data_mut(|d| d.insert_temp(dialog_reject_commit_flag(), true));
+}
+
 /// The app sets this at the start of each frame: while a dialog is open, Shift+Enter in a field
 /// applies its value and confirms the dialog as Enter does ([`shift_enter_keeps_focus`]).
 pub(crate) fn set_dialog_open(ctx: &egui::Context, open: bool) {
@@ -279,7 +289,8 @@ pub(super) fn recessed_text(
         d.insert_temp(id, buf.clone());
         d.insert_temp(focus_id, focused);
     });
-    let commit = resp.lost_focus() || kept;
+    let enter_commit = rows == 1 && editing && ui.input(|i| i.key_pressed(egui::Key::Enter));
+    let commit = resp.lost_focus() || kept || enter_commit;
     (buf, commit, resp, rect)
 }
 

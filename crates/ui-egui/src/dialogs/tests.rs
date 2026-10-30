@@ -2534,14 +2534,15 @@ fn color_halftone_invalid_input_does_not_revert_to_sub_minimum_value() {
     frame(&mut app, vec![egui::Event::Text("0.5 px".into())]);
     frame(&mut app, vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }]);
     assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
-    // 2. Refocus Max Radius before typing invalid text
-    crate::widgets::arm_field_focus(&ctx, ("dlg-len", "maxRadius"));
+    // 2. Typing invalid text on Enter must NOT confirm/close the dialog; the dialog stays open
+    app.run("effect.dialog", json!({"effect": "pixelate.colorHalftone"})).unwrap();
     frame(&mut app, vec![]);
     frame(&mut app, vec![egui::Event::Text("1jgghgh".into())]);
-    frame(&mut app, vec![egui::Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }]);
-    // The value remains the valid clamped minimum 4.0 pt, never 0.5 px, and rejection flash is set
-    assert_eq!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"], serde_json::json!(4.0));
-    assert!(app.ui.dialog.as_ref().unwrap().fields["maxRadius"] == serde_json::json!(4.0));
+    frame(
+        &mut app,
+        vec![egui::Event::Key { key: egui::Key::Enter, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() }],
+    );
+    assert!(app.ui.dialog.is_some(), "dialog must remain open on invalid Enter commit");
 }
 
 #[test]

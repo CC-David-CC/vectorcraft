@@ -4,7 +4,7 @@
 
 ## Feature submission evidence
 
-**Feature evidence last updated:** 2026-10-22.
+**Feature evidence last updated:** 2026-10-30.
 
 The shared assessment status line and revision history are current upstream; this dated section records the submission's feature evidence and revisions without rescoring upstream or claiming a new combined build or runtime measurement.
 

@@ -117,8 +117,12 @@ fn unit_field(
                 Some(clamped)
             }
             None => {
-                ui.data_mut(|d| d.remove::<String>(id));
-                ui.data_mut(|d| d.insert_temp(id.with("invalid-flash"), ui.input(|i| i.time + 0.25)));
+                let end = ui.input(|i| i.time + 0.25);
+                ui.data_mut(|d| {
+                    d.remove::<String>(id);
+                    d.insert_temp(id.with("invalid-flash"), end);
+                });
+                crate::widgets::reject_dialog_commit(ui.ctx());
                 ui.ctx().request_repaint();
                 None
             }
