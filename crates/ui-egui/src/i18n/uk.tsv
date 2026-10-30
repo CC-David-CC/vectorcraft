@@ -5481,3 +5481,47 @@ anchor	Points:	Точки:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	задайте `inkLimit`, `removeWhiteOverprint` або `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Виправлення друкарських фарб працюють у документах CMYK: спершу виберіть Файл › Колірний режим документа › Колір CMYK
 @msg	`{key}` must be 0..{max}	`{key}` має бути 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Розбити текст
+	Combine Point Text	Об’єднати текст із точки
+	Remove Breaks	Видалити розриви
+	Split Text at Cursor	Розбити текст біля курсора
+	Set Alignment, Keep Position	Задати вирівнювання, зберігши положення
+	Reset Text Transform	Скинути трансформацію тексту
+	Replace Missing Fonts…	Замінити відсутні шрифти…
+	Replace Missing Fonts	Замінити відсутні шрифти
+	Remove Line Breaks	Видалити розриви рядків
+	Remove Paragraph Breaks	Видалити розриви абзаців
+	Break Text into Lines	Розбити текст на рядки
+	Break Text into Paragraphs	Розбити текст на абзаци
+	Break Text into Words	Розбити текст на слова
+	Break Text into Glyphs	Розбити текст на гліфи
+	Reset Text Transform and Scale	Скинути трансформацію та масштаб тексту
+	Set Alignment, Keep Position:	Вирівнювання зі збереженням положення:
+	Break Text into:	Розбити текст на:
+	Split at Cursor	Розбити біля курсора
+	Reset Transform	Скинути трансформацію
+	Shift-click: break into paragraphs	Shift+клацання: розбити на абзаци
+	Alt-click: reset the horizontal scale too	Alt+клацання: скинути й горизонтальний масштаб
+breakText	Lines	Рядки
+breakText	Words	Слова
+breakText	Glyphs	Гліфи
+@msg	Click in type with a Type tool to split it	Клацніть у тексті інструментом «Текст», щоб розбити його
+@msg	Too many type objects to change at once	Забагато текстових об’єктів, щоб змінити їх за раз
+@msg	Too many pieces to make at once	Забагато частин, щоб створити їх за раз
+@msg	Select horizontal point or area type whose text fits	Виділіть горизонтальний текст із точки або в області, текст якого вміщується
+@msg	Nothing to split at the cursor	Біля курсора нічого розбивати
+@msg	Select two or more one-line point type objects on one baseline to combine	Виділіть два або більше однорядкових об’єктів тексту з точки на одній базовій лінії, щоб об’єднати їх
+@msg	No line breaks to remove	Немає розривів рядків для видалення
+@msg	No paragraph breaks to remove	Немає розривів абзаців для видалення
+@msg	Too many breaks to remove at once	Забагато розривів, щоб видалити їх за раз
+@msg	Select point type	Виділіть текст із точки
+@msg	The point type is aligned that way already	Текст із точки вже так вирівняно
+@msg	The point type has no transform to reset	Текст із точки не має трансформації для скидання
+@msg	No fonts are missing	Відсутніх шрифтів немає
+@msg	the replacement font is not available	шрифт для заміни недоступний
+@msg	missing `align`	не вказано `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` має бути lines, paragraphs, words або glyphs, а не {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` має бути "line" або "paragraph", а не {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` має бути "left", "center" або "right", а не {other}

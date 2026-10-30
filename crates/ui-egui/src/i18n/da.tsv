@@ -5787,3 +5787,47 @@ anchor	Points:	Punkter:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	angiv `inkLimit`, `removeWhiteOverprint` eller `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Trykfarverettelser virker på CMYK-dokumenter: vælg først Filer › Dokumentets farvetilstand › CMYK-farve
 @msg	`{key}` must be 0..{max}	`{key}` skal være 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Opdel tekst
+	Combine Point Text	Kombiner punkttekst
+	Remove Breaks	Fjern skift
+	Split Text at Cursor	Opdel tekst ved markøren
+	Set Alignment, Keep Position	Angiv justering, bevar placering
+	Reset Text Transform	Nulstil teksttransformation
+	Replace Missing Fonts…	Erstat manglende skrifttyper…
+	Replace Missing Fonts	Erstat manglende skrifttyper
+	Remove Line Breaks	Fjern linjeskift
+	Remove Paragraph Breaks	Fjern afsnitsskift
+	Break Text into Lines	Opdel tekst i linjer
+	Break Text into Paragraphs	Opdel tekst i afsnit
+	Break Text into Words	Opdel tekst i ord
+	Break Text into Glyphs	Opdel tekst i glyffer
+	Reset Text Transform and Scale	Nulstil teksttransformation og skalering
+	Set Alignment, Keep Position:	Angiv justering, bevar placering:
+	Break Text into:	Opdel tekst i:
+	Split at Cursor	Opdel ved markøren
+	Reset Transform	Nulstil transformation
+	Shift-click: break into paragraphs	Skift-klik: opdel i afsnit
+	Alt-click: reset the horizontal scale too	Alt-klik: nulstil også den vandrette skalering
+breakText	Lines	Linjer
+breakText	Words	Ord
+breakText	Glyphs	Glyffer
+@msg	Click in type with a Type tool to split it	Klik i tekst med et tekstværktøj for at opdele den
+@msg	Too many type objects to change at once	For mange tekstobjekter til at ændre på én gang
+@msg	Too many pieces to make at once	For mange dele til at oprette på én gang
+@msg	Select horizontal point or area type whose text fits	Vælg vandret punkt- eller områdetekst, hvis tekst kan være der
+@msg	Nothing to split at the cursor	Intet at opdele ved markøren
+@msg	Select two or more one-line point type objects on one baseline to combine	Vælg to eller flere punkttekstobjekter på én linje på samme grundlinje for at kombinere dem
+@msg	No line breaks to remove	Ingen linjeskift at fjerne
+@msg	No paragraph breaks to remove	Ingen afsnitsskift at fjerne
+@msg	Too many breaks to remove at once	For mange skift til at fjerne på én gang
+@msg	Select point type	Vælg punkttekst
+@msg	The point type is aligned that way already	Punktteksten er allerede justeret sådan
+@msg	The point type has no transform to reset	Punktteksten har ingen transformation at nulstille
+@msg	No fonts are missing	Ingen skrifttyper mangler
+@msg	the replacement font is not available	erstatningsskrifttypen er ikke tilgængelig
+@msg	missing `align`	`align` mangler
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` skal være lines, paragraphs, words eller glyphs, ikke {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` skal være "line" eller "paragraph", ikke {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` skal være "left", "center" eller "right", ikke {other}

@@ -5737,3 +5737,47 @@ anchor	Points:	Punkty:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	podaj `inkLimit`, `removeWhiteOverprint` lub `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Poprawki farb drukarskich działają w dokumentach CMYK: najpierw wybierz Plik › Tryb koloru dokumentu › Kolor CMYK
 @msg	`{key}` must be 0..{max}	`{key}` musi wynosić 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Podziel tekst
+	Combine Point Text	Połącz tekst punktowy
+	Remove Breaks	Usuń podziały
+	Split Text at Cursor	Podziel tekst w miejscu kursora
+	Set Alignment, Keep Position	Ustaw wyrównanie, zachowaj położenie
+	Reset Text Transform	Resetuj przekształcenie tekstu
+	Replace Missing Fonts…	Zastąp brakujące czcionki…
+	Replace Missing Fonts	Zastąp brakujące czcionki
+	Remove Line Breaks	Usuń podziały wiersza
+	Remove Paragraph Breaks	Usuń podziały akapitu
+	Break Text into Lines	Podziel tekst na wiersze
+	Break Text into Paragraphs	Podziel tekst na akapity
+	Break Text into Words	Podziel tekst na słowa
+	Break Text into Glyphs	Podziel tekst na glify
+	Reset Text Transform and Scale	Resetuj przekształcenie i skalę tekstu
+	Set Alignment, Keep Position:	Ustaw wyrównanie, zachowaj położenie:
+	Break Text into:	Podziel tekst na:
+	Split at Cursor	Podziel w miejscu kursora
+	Reset Transform	Resetuj przekształcenie
+	Shift-click: break into paragraphs	Kliknięcie z Shift: podziel na akapity
+	Alt-click: reset the horizontal scale too	Kliknięcie z Alt: resetuj także skalę poziomą
+breakText	Lines	Wiersze
+breakText	Words	Słowa
+breakText	Glyphs	Glify
+@msg	Click in type with a Type tool to split it	Kliknij w tekst narzędziem Tekst, aby go podzielić
+@msg	Too many type objects to change at once	Zbyt wiele obiektów tekstowych do zmiany naraz
+@msg	Too many pieces to make at once	Zbyt wiele części do utworzenia naraz
+@msg	Select horizontal point or area type whose text fits	Zaznacz poziomy tekst punktowy lub akapitowy, którego tekst się mieści
+@msg	Nothing to split at the cursor	Nie ma nic do podzielenia w miejscu kursora
+@msg	Select two or more one-line point type objects on one baseline to combine	Zaznacz co najmniej dwa jednowierszowe obiekty tekstu punktowego na jednej linii bazowej, aby je połączyć
+@msg	No line breaks to remove	Brak podziałów wiersza do usunięcia
+@msg	No paragraph breaks to remove	Brak podziałów akapitu do usunięcia
+@msg	Too many breaks to remove at once	Zbyt wiele podziałów do usunięcia naraz
+@msg	Select point type	Zaznacz tekst punktowy
+@msg	The point type is aligned that way already	Tekst punktowy jest już tak wyrównany
+@msg	The point type has no transform to reset	Tekst punktowy nie ma przekształcenia do zresetowania
+@msg	No fonts are missing	Nie brakuje żadnych czcionek
+@msg	the replacement font is not available	czcionka zastępcza jest niedostępna
+@msg	missing `align`	brak `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` musi mieć wartość lines, paragraphs, words lub glyphs, a nie {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` musi mieć wartość "line" lub "paragraph", a nie {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` musi mieć wartość "left", "center" lub "right", a nie {other}

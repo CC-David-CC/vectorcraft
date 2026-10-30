@@ -5787,3 +5787,47 @@ anchor	Points:	Titik:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	berikan `inkLimit`, `removeWhiteOverprint`, atau `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Perbaikan Tinta Cetak bekerja pada dokumen CMYK: pilih dulu Berkas › Mode warna dokumen › Warna CMYK
 @msg	`{key}` must be 0..{max}	`{key}` harus 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Pisahkan teks
+	Combine Point Text	Gabungkan teks titik
+	Remove Breaks	Hapus pemisah
+	Split Text at Cursor	Pisahkan teks di kursor
+	Set Alignment, Keep Position	Atur perataan, pertahankan posisi
+	Reset Text Transform	Atur ulang transformasi teks
+	Replace Missing Fonts…	Ganti font yang hilang…
+	Replace Missing Fonts	Ganti font yang hilang
+	Remove Line Breaks	Hapus putus baris
+	Remove Paragraph Breaks	Hapus putus paragraf
+	Break Text into Lines	Pisahkan teks menjadi baris
+	Break Text into Paragraphs	Pisahkan teks menjadi paragraf
+	Break Text into Words	Pisahkan teks menjadi kata
+	Break Text into Glyphs	Pisahkan teks menjadi glif
+	Reset Text Transform and Scale	Atur ulang transformasi dan skala teks
+	Set Alignment, Keep Position:	Atur perataan, pertahankan posisi:
+	Break Text into:	Pisahkan teks menjadi:
+	Split at Cursor	Pisahkan di kursor
+	Reset Transform	Atur ulang transformasi
+	Shift-click: break into paragraphs	Shift+klik: pisahkan menjadi paragraf
+	Alt-click: reset the horizontal scale too	Alt+klik: atur ulang juga skala horizontal
+breakText	Lines	Baris
+breakText	Words	Kata
+breakText	Glyphs	Glif
+@msg	Click in type with a Type tool to split it	Klik di dalam teks dengan alat teks untuk memisahkannya
+@msg	Too many type objects to change at once	Terlalu banyak objek teks untuk diubah sekaligus
+@msg	Too many pieces to make at once	Terlalu banyak bagian untuk dibuat sekaligus
+@msg	Select horizontal point or area type whose text fits	Pilih teks titik atau teks area horizontal yang teksnya muat
+@msg	Nothing to split at the cursor	Tidak ada yang dapat dipisahkan di kursor
+@msg	Select two or more one-line point type objects on one baseline to combine	Pilih dua atau lebih objek teks titik satu baris pada satu garis dasar untuk menggabungkannya
+@msg	No line breaks to remove	Tidak ada putus baris untuk dihapus
+@msg	No paragraph breaks to remove	Tidak ada putus paragraf untuk dihapus
+@msg	Too many breaks to remove at once	Terlalu banyak pemisah untuk dihapus sekaligus
+@msg	Select point type	Pilih teks titik
+@msg	The point type is aligned that way already	Teks titik sudah diratakan seperti itu
+@msg	The point type has no transform to reset	Teks titik tidak memiliki transformasi untuk diatur ulang
+@msg	No fonts are missing	Tidak ada font yang hilang
+@msg	the replacement font is not available	font pengganti tidak tersedia
+@msg	missing `align`	`align` tidak ada
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` harus lines, paragraphs, words, atau glyphs, bukan {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` harus "line" atau "paragraph", bukan {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` harus "left", "center", atau "right", bukan {other}

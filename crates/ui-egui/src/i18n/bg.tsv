@@ -5772,3 +5772,47 @@ anchor	Points:	Точки:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	задайте `inkLimit`, `removeWhiteOverprint` или `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Корекциите на мастилата за печат работят върху CMYK документи: първо изберете Файл › Цветен режим на документа › CMYK цвят
 @msg	`{key}` must be 0..{max}	`{key}` трябва да е 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Разделяне на текст
+	Combine Point Text	Обединяване на точков текст
+	Remove Breaks	Премахване на прекъсвания
+	Split Text at Cursor	Разделяне на текст при курсора
+	Set Alignment, Keep Position	Задаване на подравняване със запазване на позицията
+	Reset Text Transform	Нулиране на трансформацията на текста
+	Replace Missing Fonts…	Замяна на липсващите шрифтове…
+	Replace Missing Fonts	Замяна на липсващите шрифтове
+	Remove Line Breaks	Премахване на прекъсванията на редове
+	Remove Paragraph Breaks	Премахване на прекъсванията на абзаци
+	Break Text into Lines	Разделяне на текста на редове
+	Break Text into Paragraphs	Разделяне на текста на абзаци
+	Break Text into Words	Разделяне на текста на думи
+	Break Text into Glyphs	Разделяне на текста на глифи
+	Reset Text Transform and Scale	Нулиране на трансформацията и мащаба на текста
+	Set Alignment, Keep Position:	Подравняване със запазване на позицията:
+	Break Text into:	Разделяне на текста на:
+	Split at Cursor	Разделяне при курсора
+	Reset Transform	Нулиране на трансформацията
+	Shift-click: break into paragraphs	Shift-щракване: разделяне на абзаци
+	Alt-click: reset the horizontal scale too	Alt-щракване: нулиране и на хоризонталния мащаб
+breakText	Lines	Редове
+breakText	Words	Думи
+breakText	Glyphs	Глифи
+@msg	Click in type with a Type tool to split it	Щракнете в текст с инструмента „Текст“, за да го разделите
+@msg	Too many type objects to change at once	Твърде много текстови обекти за промяна наведнъж
+@msg	Too many pieces to make at once	Твърде много части за създаване наведнъж
+@msg	Select horizontal point or area type whose text fits	Изберете хоризонтален точков текст или текст в зона, чийто текст се побира
+@msg	Nothing to split at the cursor	При курсора няма какво да се раздели
+@msg	Select two or more one-line point type objects on one baseline to combine	Изберете два или повече едноредови обекта с точков текст на една базова линия, за да ги обедините
+@msg	No line breaks to remove	Няма прекъсвания на редове за премахване
+@msg	No paragraph breaks to remove	Няма прекъсвания на абзаци за премахване
+@msg	Too many breaks to remove at once	Твърде много прекъсвания за премахване наведнъж
+@msg	Select point type	Изберете точков текст
+@msg	The point type is aligned that way already	Точковият текст вече е подравнен така
+@msg	The point type has no transform to reset	Точковият текст няма трансформация за нулиране
+@msg	No fonts are missing	Няма липсващи шрифтове
+@msg	the replacement font is not available	заместващият шрифт не е наличен
+@msg	missing `align`	липсва `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` трябва да е lines, paragraphs, words или glyphs, а не {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` трябва да е "line" или "paragraph", а не {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` трябва да е "left", "center" или "right", а не {other}

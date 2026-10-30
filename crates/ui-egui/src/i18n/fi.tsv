@@ -5913,3 +5913,47 @@ anchor	Points:	Pisteet:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	anna `inkLimit`, `removeWhiteOverprint` tai `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Painovärien korjaukset toimivat CMYK-asiakirjoissa: valitse ensin Tiedosto › Asiakirjan väritila › CMYK-väri
 @msg	`{key}` must be 0..{max}	`{key}` on oltava 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Jaa teksti
+	Combine Point Text	Yhdistä pisteteksti
+	Remove Breaks	Poista vaihdot
+	Split Text at Cursor	Jaa teksti kohdistimen kohdalta
+	Set Alignment, Keep Position	Aseta tasaus, säilytä sijainti
+	Reset Text Transform	Palauta tekstin muunnos
+	Replace Missing Fonts…	Korvaa puuttuvat fontit…
+	Replace Missing Fonts	Korvaa puuttuvat fontit
+	Remove Line Breaks	Poista rivinvaihdot
+	Remove Paragraph Breaks	Poista kappaleenvaihdot
+	Break Text into Lines	Jaa teksti riveiksi
+	Break Text into Paragraphs	Jaa teksti kappaleiksi
+	Break Text into Words	Jaa teksti sanoiksi
+	Break Text into Glyphs	Jaa teksti merkeiksi
+	Reset Text Transform and Scale	Palauta tekstin muunnos ja skaalaus
+	Set Alignment, Keep Position:	Aseta tasaus, säilytä sijainti:
+	Break Text into:	Jaa teksti:
+	Split at Cursor	Jaa kohdistimen kohdalta
+	Reset Transform	Palauta muunnos
+	Shift-click: break into paragraphs	Vaihto-napsautus: jaa kappaleiksi
+	Alt-click: reset the horizontal scale too	Alt-napsautus: palauta myös vaakaskaalaus
+breakText	Lines	Rivit
+breakText	Words	Sanat
+breakText	Glyphs	Merkit
+@msg	Click in type with a Type tool to split it	Napsauta tekstiä tekstityökalulla jakaaksesi sen
+@msg	Too many type objects to change at once	Liian monta tekstiobjektia muutettavaksi kerralla
+@msg	Too many pieces to make at once	Liian monta osaa luotavaksi kerralla
+@msg	Select horizontal point or area type whose text fits	Valitse vaakasuora piste- tai alueteksti, jonka teksti mahtuu
+@msg	Nothing to split at the cursor	Kohdistimen kohdalla ei ole jaettavaa
+@msg	Select two or more one-line point type objects on one baseline to combine	Valitse kaksi tai useampia yksirivisiä pistetekstiobjekteja samalla perusviivalla yhdistääksesi ne
+@msg	No line breaks to remove	Ei poistettavia rivinvaihtoja
+@msg	No paragraph breaks to remove	Ei poistettavia kappaleenvaihtoja
+@msg	Too many breaks to remove at once	Liian monta vaihtoa poistettavaksi kerralla
+@msg	Select point type	Valitse pisteteksti
+@msg	The point type is aligned that way already	Pisteteksti on jo tasattu näin
+@msg	The point type has no transform to reset	Pistetekstillä ei ole palautettavaa muunnosta
+@msg	No fonts are missing	Fontteja ei puutu
+@msg	the replacement font is not available	korvaava fontti ei ole käytettävissä
+@msg	missing `align`	`align` puuttuu
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` on oltava lines, paragraphs, words tai glyphs, ei {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` on oltava "line" tai "paragraph", ei {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` on oltava "left", "center" tai "right", ei {other}

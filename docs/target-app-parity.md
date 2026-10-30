@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Color Effects add-on: Duotone and Print Ink Fixes; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-31 · **Change:** minor (Artwork Cleanup add-on: text tools; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -1222,6 +1222,14 @@ Show, Fix Selected and Fix All (each one undo step), Deep Ungroup and Rejoin Pat
 alone; Fix All as one step; scopes; rejoin within the gap only) and `addons::cleanup::tests` in `vectorcraft-ui-egui`
 (the submenu opens the panel; Check lists what it finds). Commands: `docs/mcp.md` › Artwork Cleanup add-on.
 
+The add-on's text tools (2026-10-31) work on the shared text layout: Break Text into lines, paragraphs, words or glyphs
+and Split Text at Cursor make point type pieces placed by the glyph of their first character, Combine Point Text merges
+one-line point type back with every glyph where it was (tracking and spaces, checked against the layout), and Remove
+Line / Paragraph Breaks, Set Alignment, Keep Position, Reset Text Transform and Replace Missing Fonts. Tests:
+`cmd::addons::cleanup::text::tests` in `vectorcraft-engine` (glyphs kept in place, styles kept, one undo step,
+refusals), `addons::cleanup::tests` in `vectorcraft-ui-egui` (the submenu and the panel's Text row run them) and
+`cleanup_text_tools_with_junk_editing_ranges` in the command sweep.
+
 ## Path Precision Tools add-on (2026-10-30)
 
 A VectorCraft addition, not an Illustrator feature, so no area score moves. Object › Plug-ins › Path Precision Tools,
@@ -1296,6 +1304,7 @@ add-on.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-31 | minor | Artwork Cleanup add-on (a VectorCraft addition): text tools; evidence added; scores unchanged. |
 | 2026-10-30 | minor | Color Effects add-on: live Duotone (one to four inks, spot tones kept) and Print Ink Fixes; scores and estimates unchanged |
 | 2026-10-30 | minor | 3D Extrude & Bevel, Inflate and Rotate apply to type, which stays editable (#4715); scores and estimates unchanged |
 | 2026-10-30 | minor | Color Effects add-on: live Vector Halftone; scores and estimates unchanged |

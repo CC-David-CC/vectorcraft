@@ -5834,3 +5834,47 @@ anchor	Points:	Σημεία:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	δώστε `inkLimit`, `removeWhiteOverprint` ή `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Οι διορθώσεις μελανιών εκτύπωσης ισχύουν σε έγγραφα CMYK: επιλέξτε πρώτα Αρχείο › Λειτουργία χρώματος εγγράφου › Χρώμα CMYK
 @msg	`{key}` must be 0..{max}	το `{key}` πρέπει να είναι 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Διαίρεση κειμένου
+	Combine Point Text	Συνδυασμός κειμένου σημείου
+	Remove Breaks	Αφαίρεση αλλαγών
+	Split Text at Cursor	Διαίρεση κειμένου στον δρομέα
+	Set Alignment, Keep Position	Ορισμός στοίχισης με διατήρηση θέσης
+	Reset Text Transform	Επαναφορά μετασχηματισμού κειμένου
+	Replace Missing Fonts…	Αντικατάσταση γραμματοσειρών που λείπουν…
+	Replace Missing Fonts	Αντικατάσταση γραμματοσειρών που λείπουν
+	Remove Line Breaks	Αφαίρεση αλλαγών γραμμής
+	Remove Paragraph Breaks	Αφαίρεση αλλαγών παραγράφου
+	Break Text into Lines	Διαίρεση κειμένου σε γραμμές
+	Break Text into Paragraphs	Διαίρεση κειμένου σε παραγράφους
+	Break Text into Words	Διαίρεση κειμένου σε λέξεις
+	Break Text into Glyphs	Διαίρεση κειμένου σε γλύφους
+	Reset Text Transform and Scale	Επαναφορά μετασχηματισμού και κλίμακας κειμένου
+	Set Alignment, Keep Position:	Στοίχιση με διατήρηση θέσης:
+	Break Text into:	Διαίρεση κειμένου σε:
+	Split at Cursor	Διαίρεση στον δρομέα
+	Reset Transform	Επαναφορά μετασχηματισμού
+	Shift-click: break into paragraphs	Shift-κλικ: διαίρεση σε παραγράφους
+	Alt-click: reset the horizontal scale too	Alt-κλικ: επαναφορά και της οριζόντιας κλίμακας
+breakText	Lines	Γραμμές
+breakText	Words	Λέξεις
+breakText	Glyphs	Γλύφοι
+@msg	Click in type with a Type tool to split it	Κάντε κλικ σε κείμενο με ένα εργαλείο κειμένου για να το διαιρέσετε
+@msg	Too many type objects to change at once	Πάρα πολλά αντικείμενα κειμένου για αλλαγή ταυτόχρονα
+@msg	Too many pieces to make at once	Πάρα πολλά κομμάτια για δημιουργία ταυτόχρονα
+@msg	Select horizontal point or area type whose text fits	Επιλέξτε οριζόντιο κείμενο σημείου ή περιοχής του οποίου το κείμενο χωράει
+@msg	Nothing to split at the cursor	Δεν υπάρχει τίποτα για διαίρεση στον δρομέα
+@msg	Select two or more one-line point type objects on one baseline to combine	Επιλέξτε δύο ή περισσότερα μονογραμμικά αντικείμενα κειμένου σημείου στην ίδια γραμμή βάσης για να τα συνδυάσετε
+@msg	No line breaks to remove	Δεν υπάρχουν αλλαγές γραμμής για αφαίρεση
+@msg	No paragraph breaks to remove	Δεν υπάρχουν αλλαγές παραγράφου για αφαίρεση
+@msg	Too many breaks to remove at once	Πάρα πολλές αλλαγές για αφαίρεση ταυτόχρονα
+@msg	Select point type	Επιλέξτε κείμενο σημείου
+@msg	The point type is aligned that way already	Το κείμενο σημείου είναι ήδη στοιχισμένο έτσι
+@msg	The point type has no transform to reset	Το κείμενο σημείου δεν έχει μετασχηματισμό για επαναφορά
+@msg	No fonts are missing	Δεν λείπει καμία γραμματοσειρά
+@msg	the replacement font is not available	η γραμματοσειρά αντικατάστασης δεν είναι διαθέσιμη
+@msg	missing `align`	λείπει το `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	το `by` πρέπει να είναι lines, paragraphs, words ή glyphs, όχι {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	το `kind` πρέπει να είναι "line" ή "paragraph", όχι {other}
+@msg	`align` must be "left", "center" or "right", not {other}	το `align` πρέπει να είναι "left", "center" ή "right", όχι {other}

@@ -5869,3 +5869,47 @@ anchor	Points:	Pontok:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	adja meg: `inkLimit`, `removeWhiteOverprint` vagy `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	A nyomdai festékjavítások CMYK-dokumentumokon működnek: előbb válassza a Fájl › Dokumentum színmódja › CMYK-szín parancsot
 @msg	`{key}` must be 0..{max}	`{key}` értéke 0..{max} lehet
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Szöveg felosztása
+	Combine Point Text	Pontszöveg egyesítése
+	Remove Breaks	Törések eltávolítása
+	Split Text at Cursor	Szöveg felosztása a kurzornál
+	Set Alignment, Keep Position	Igazítás beállítása, helyzet megtartása
+	Reset Text Transform	Szövegátalakítás visszaállítása
+	Replace Missing Fonts…	Hiányzó betűtípusok cseréje…
+	Replace Missing Fonts	Hiányzó betűtípusok cseréje
+	Remove Line Breaks	Sortörések eltávolítása
+	Remove Paragraph Breaks	Bekezdéstörések eltávolítása
+	Break Text into Lines	Szöveg felosztása sorokra
+	Break Text into Paragraphs	Szöveg felosztása bekezdésekre
+	Break Text into Words	Szöveg felosztása szavakra
+	Break Text into Glyphs	Szöveg felosztása glifákra
+	Reset Text Transform and Scale	Szövegátalakítás és méretezés visszaállítása
+	Set Alignment, Keep Position:	Igazítás beállítása, helyzet megtartása:
+	Break Text into:	Szöveg felosztása:
+	Split at Cursor	Felosztás a kurzornál
+	Reset Transform	Átalakítás visszaállítása
+	Shift-click: break into paragraphs	Shift+kattintás: felosztás bekezdésekre
+	Alt-click: reset the horizontal scale too	Alt+kattintás: a vízszintes méretezés visszaállítása is
+breakText	Lines	Sorok
+breakText	Words	Szavak
+breakText	Glyphs	Glifák
+@msg	Click in type with a Type tool to split it	Kattintson a szövegbe egy szöveg eszközzel a felosztáshoz
+@msg	Too many type objects to change at once	Túl sok szövegobjektum az egyszerre történő módosításhoz
+@msg	Too many pieces to make at once	Túl sok darab az egyszerre történő létrehozáshoz
+@msg	Select horizontal point or area type whose text fits	Jelöljön ki vízszintes pont- vagy területszöveget, amelynek szövege elfér
+@msg	Nothing to split at the cursor	A kurzornál nincs mit felosztani
+@msg	Select two or more one-line point type objects on one baseline to combine	Az egyesítéshez jelöljön ki legalább két egysoros pontszöveg-objektumot egy alapvonalon
+@msg	No line breaks to remove	Nincs eltávolítandó sortörés
+@msg	No paragraph breaks to remove	Nincs eltávolítandó bekezdéstörés
+@msg	Too many breaks to remove at once	Túl sok törés az egyszerre történő eltávolításhoz
+@msg	Select point type	Jelöljön ki pontszöveget
+@msg	The point type is aligned that way already	A pontszöveg már így van igazítva
+@msg	The point type has no transform to reset	A pontszövegnek nincs visszaállítandó átalakítása
+@msg	No fonts are missing	Nem hiányzik betűtípus
+@msg	the replacement font is not available	a helyettesítő betűtípus nem érhető el
+@msg	missing `align`	hiányzik az `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	a `by` értéke lines, paragraphs, words vagy glyphs lehet, nem {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	a `kind` értéke "line" vagy "paragraph" lehet, nem {other}
+@msg	`align` must be "left", "center" or "right", not {other}	az `align` értéke "left", "center" vagy "right" lehet, nem {other}
