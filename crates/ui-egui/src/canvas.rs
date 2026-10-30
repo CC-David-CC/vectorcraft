@@ -58,7 +58,7 @@ use outline::KEY_OUTLINE;
 use outline::{OVERLAY_MAX_ANCHORS, c32, node_outline, walk_drawn};
 #[cfg(test)]
 use overlays::selected_anchor;
-use overlays::{HandleLook, draw_overlays, hover_highlight, ime_geometry, selection_overlay};
+use overlays::{HandleLook, draw_inside_overlay, draw_overlays, hover_highlight, ime_geometry, selection_overlay};
 pub(crate) use raster::color_image;
 use raster::{changed_pixels, pixel_region, upload};
 use task_bar::task_bar;
@@ -792,6 +792,7 @@ fn selection_visuals(
             hover_highlight(app, painter, xf);
         }
         selection_overlay(app, painter, xf, overlays.iter().any(|o| matches!(o, Overlay::CurvePoint { .. })));
+        draw_inside_overlay(app, painter, xf);
         mirror_axis_overlay(app, painter, xf);
         grid_repeat_overlay(app, painter, xf);
         if app.ui.view.text_threads {

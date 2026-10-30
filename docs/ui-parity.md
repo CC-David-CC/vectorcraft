@@ -1,6 +1,6 @@
 # UI and interaction parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Smart Pen add-on: its tool, panel and Object › Plug-ins submenu; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Draw Inside marks the corners of the object it draws into (#4319); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 ## Feature submission evidence
 
@@ -101,6 +101,7 @@ tools, never checked side by side) isn't captured row by row.
 | Simplify (slider, auto, corner angle threshold), of a whole path or of the part of it selected with Direct Selection ([manually simplify paths](https://helpx.adobe.com/illustrator/desktop/draw-shapes-and-paths/modify-paths/manually-simplify-paths.html)) | done | Tolerance, default-on Preview and original/new point counts (#1272); Corner Point Angle Threshold, Convert to Straight Lines and Show Original Path; the slider under the selection with Auto-Simplify and More Options, opening at the Auto-Simplify level for the selection with that result previewed, and the dialog's option to open it directly with its last settings. With anchors or segments direct-selected, the slider, Auto-Simplify and the dialog refit only each run of selected segments between its end anchors, a closed path's run across its start point included; the rest of the path stays exactly as it was (`tests/simplify_part.rs`, `simplify_slider_and_dialog_simplify_only_the_direct_selected_part_of_a_path`) |
 | Smooth (Object › Path › Smooth…: slider from minimum to maximum smoothing, Auto-Smooth) ([smooth slider](https://helpx.adobe.com/illustrator/desktop/draw-shapes-and-paths/modify-paths/refine-path-segments-with-the-smooth-slider.html)) | done | #4115: the slider under the selection previews `object.path.smooth {level}`, Auto-Smooth picks level 50, Enter or a click outside keeps one undo step and Escape restores; the smoothing rule beyond the two ends is VectorCraft's own (`tests/smooth_path.rs`, `smooth_slider_previews_auto_smooth_and_keeps_the_result`) |
 | Draw Inside in isolation mode: art drawn or pasted inside the isolated object takes isolation mode into its clip group, clickable and undimmed ([isolation mode](https://helpx.adobe.com/illustrator/desktop/manage-objects/select-objects/isolate-objects.html), [drawing modes](https://helpx.adobe.com/illustrator/desktop/draw-shapes-and-paths/learn-drawing-basics/drawing-modes-overview.html)) | done | #3705; `drawing_inside_an_isolated_object_keeps_the_new_art_in_isolation_mode` |
+| Draw Inside marks the object it draws into: a dotted open rectangle round its corners, in its layer's colour, while the mode lasts, selected or not | done | #4319, `canvas::tests::draw_inside_marks_the_corners_of_its_object` ([drawing modes](https://helpx.adobe.com/illustrator/desktop/draw-shapes-and-paths/learn-drawing-basics/drawing-modes-overview.html)) |
 | Simplify (slider, auto, corner angle threshold) | partial | Tolerance, default-on Preview and original/new point counts (#1272); Corner Point Angle Threshold, Convert to Straight Lines and Show Original Path; the slider under the selection with Auto-Simplify and More Options, and the dialog's option to open it directly with its last settings; the slider opens at 1 pt rather than at the Auto-Simplify level, and simplifying only a Direct Selection part of a path remains missing |
 | Simplify (slider, auto, corner angle threshold) | partial | Tolerance, default-on Preview and original/new point counts (#1272); Corner Point Angle Threshold, Convert to Straight Lines and Show Original Path; the slider under the selection with Auto-Simplify and More Options, opening at the Auto-Simplify level for the selection with that result previewed, and the dialog's option to open it directly with its last settings; simplifying only a Direct Selection part of a path remains missing |
 
@@ -365,6 +366,7 @@ separate. Scores and hours unchanged. [Behavior and command details](development
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | Draw Inside marks the corners of the object it draws into (#4319); scores and estimates unchanged |
 | 2026-10-30 | minor | Smart Pen add-on (a VectorCraft addition): its tool, panel and Object › Plug-ins › Smart Pen; scores and estimates unchanged |
 | 2026-10-30 | minor | Path Precision Tools add-on (a VectorCraft addition): its tools, Anchor Inspector panel and Object › Plug-ins › Path Precision Tools; scores and estimates unchanged |
 | 2026-10-30 | minor | Color Effects add-on: its effects, panel and Object › Plug-ins submenu; scores and estimates unchanged |
