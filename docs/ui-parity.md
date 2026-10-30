@@ -244,7 +244,9 @@ tools, never checked side by side) isn't captured row by row.
 ## Keyboard shortcuts
 
 Cmd/Ctrl+/ (`appearance.addFill`) and Cmd/Ctrl+Alt+/ (`appearance.addStroke`) add a new fill and a new stroke to the
-selected objects, as the Appearance panel's Add New Fill and Add New Stroke buttons do.
+selected objects, as the Appearance panel's Add New Fill and Add New Stroke buttons do. Cmd/Ctrl+4
+(`pathfinder.repeat`, Repeat Pathfinder) runs the operation a Pathfinder panel button ran last on the selected
+objects, as the panel menu's Repeat item does.
 
 ~110 distinct modified shortcuts on menu commands plus single-key tool shortcuts for the default toolbar
 (`crates/tools/src/catalog.rs`), a shortcut editor with chords, and saved sets. Cmd/Ctrl+Alt+L (`ui.newLayer`) opens Layer Options for a new layer, as an Alt-click on the Layers panel's New Layer button does, and Cmd/Ctrl+L still adds a layer without the dialog. F8 (`ui.symbolOptions`) opens Symbol Options for a new symbol made from the selection, as the Symbols panel's New Symbol button does. Not yet diffed item by item

@@ -3934,6 +3934,7 @@ font-technology	Variable	ცვლადი
 @msg	no document	დოკუმენტი არ არის
 @msg	no document open	გახსნილი დოკუმენტი არ არის
 @msg	no effect applied yet	ეფექტი ჯერ არ გამოყენებულა
+@msg	no Pathfinder operation applied yet	ტრაექტორიების ოპერაცია ჯერ არ გამოყენებულა
 @msg	no effect at index {k}	ინდექსზე {k} ეფექტი არ არის
 @msg	no end record	დასასრულის ჩანაწერი არ არის
 @msg	no file manager here	აქ ფაილების მენეჯერი არ არის

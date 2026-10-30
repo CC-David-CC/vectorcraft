@@ -4373,6 +4373,7 @@ imageTrace	Outline	Ääriviiva
 @msg	no document	ei asiakirjaa
 @msg	no document open	asiakirjaa ei ole auki
 @msg	no effect applied yet	tehostetta ei ole vielä käytetty
+@msg	no Pathfinder operation applied yet	polunetsimen toimintoa ei ole vielä käytetty
 @msg	no effect at index {k}	ei tehostetta indeksissä {k}
 @msg	no end record	ei loppumerkintää
 @msg	no file manager here	täällä ei ole tiedostonhallintaa

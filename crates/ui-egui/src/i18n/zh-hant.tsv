@@ -2198,6 +2198,7 @@ file-filter	Templates	範本
 @msg	no PNG encoder	沒有 PNG 編碼器
 @msg	no document open	沒有開啟的文件
 @msg	no effect applied yet	尚未套用任何效果
+@msg	no Pathfinder operation applied yet	尚未套用任何路徑管理員操作
 @msg	no such perspective grid preset	沒有這個透視格點預設集
 @msg	no such recent file	沒有這個最近使用的檔案
 @msg	no such recent font	沒有這個最近使用的字體

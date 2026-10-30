@@ -4193,6 +4193,7 @@ axis	Both	Оба
 @msg	no document	нет документа
 @msg	no document open	нет открытого документа
 @msg	no effect applied yet	эффект ещё не применён
+@msg	no Pathfinder operation applied yet	операция обработки контуров ещё не применена
 @msg	no effect at index {k}	нет эффекта с индексом {k}
 @msg	no end record	нет конечной записи
 @msg	no file manager here	здесь нет файлового менеджера

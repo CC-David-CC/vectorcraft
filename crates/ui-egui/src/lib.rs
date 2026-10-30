@@ -134,6 +134,9 @@ pub struct VectorcraftApp {
     pub titlebar_inset: f32,
     /// Last applied effect (Effect → Apply Last Effect).
     pub last_effect: Option<(String, serde_json::Value)>,
+    /// The operation a Pathfinder panel button ran last (`unite`, `divide`, …) and the button's
+    /// label, which Repeat Pathfinder runs again ([`panels::pathfinder::repeat`]).
+    pub last_pathfinder: Option<(String, String)>,
     /// Last confirmed Warp Options (bend, distortion, orientation) for the next new warp dialog.
     pub last_warp: Option<serde_json::Value>,
     /// The Character panel field that takes the keyboard focus when the panel next draws it

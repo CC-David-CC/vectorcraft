@@ -4151,6 +4151,7 @@ imageTrace	Outline	Kontur
 @msg	no document	intet dokument
 @msg	no document open	intet åbent dokument
 @msg	no effect applied yet	ingen effekt er anvendt endnu
+@msg	no Pathfinder operation applied yet	ingen Pathfinder-handling er anvendt endnu
 @msg	no effect at index {k}	ingen effekt ved indeks {k}
 @msg	no end record	ingen slutpost
 @msg	no file manager here	ingen filhåndtering her

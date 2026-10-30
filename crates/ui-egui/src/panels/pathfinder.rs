@@ -3,10 +3,10 @@
 //! sets theirs.
 
 use egui::Ui;
-use serde_json::json;
+use serde_json::{Value, json};
 use vectorcraft_engine::doc::ShapeMode;
 
-use super::{pstate, selection_len, set_pstate};
+use super::selection_len;
 use crate::VectorcraftApp;
 use crate::widgets::{self, menu_item};
 
@@ -26,9 +26,18 @@ pub const PATHFINDERS: [(&str, &str, &str); 6] = [
     ("dc-pf-minus-back", "Minus Back", "minusBack"),
 ];
 
-fn run(app: &mut VectorcraftApp, ui: &Ui, op: &str, label: &str) {
+fn run(app: &mut VectorcraftApp, _ui: &Ui, op: &str, label: &str) {
     if app.run(&format!("object.pathfinder.{op}"), json!({})).is_ok() {
-        set_pstate(ui.ctx(), "pf-last", Some((op.to_string(), label.to_string())));
+        app.last_pathfinder = Some((op.to_string(), label.to_string()));
+    }
+}
+
+/// Repeat Pathfinder (`pathfinder.repeat`, Cmd/Ctrl+4, the panel menu's Repeat item): the
+/// operation a button of the panel ran last, on the selection.
+pub fn repeat(app: &mut VectorcraftApp) -> Result<Value, String> {
+    match app.last_pathfinder.clone() {
+        Some((op, _)) => app.run(&format!("object.pathfinder.{op}"), json!({})),
+        None => Err("no Pathfinder operation applied yet".into()),
     }
 }
 
@@ -110,13 +119,13 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
     if menu_item(ui, tl!("Trap…"), operands(app) >= 2, false) {
         open_trap(app);
     }
-    let last: Option<(String, String)> = pstate(ui.ctx(), "pf-last");
-    let label =
-        last.as_ref().map(|(_, l)| crate::i18n::fmt(tl!("Repeat {name}"), &[("name", tl!(l))])).unwrap_or_else(|| tl!("Repeat Pathfinder").into());
-    if menu_item(ui, &label, last.is_some() && selection_len(app) >= 1, false)
-        && let Some((op, l)) = last
-    {
-        run(app, ui, &op, &l);
+    let label = app
+        .last_pathfinder
+        .as_ref()
+        .map(|(_, l)| crate::i18n::fmt(tl!("Repeat {name}"), &[("name", tl!(l))]))
+        .unwrap_or_else(|| tl!("Repeat Pathfinder").into());
+    if menu_item(ui, &label, crate::menus::enabled(app, "pathfinder.repeat"), false) {
+        crate::menus::invoke(app, "pathfinder.repeat", json!({}));
     }
     if menu_item(ui, tl!("Pathfinder Options…"), true, false) {
         crate::menus::invoke(app, "object.pathfinder.options", json!({}));
@@ -280,5 +289,135 @@ mod tests {
         let pieces = group.children().unwrap();
         assert_eq!(pieces.len(), 1, "only the square's piece outside the unfilled rectangle");
         assert!(pieces.iter().all(|p| !p.appearance.fill_paint().is_none()));
+    }
+
+    /// A document with two overlapping 50 pt squares, both selected.
+    fn two_squares() -> VectorcraftApp {
+        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
+        select_two_squares(&mut app, 10.0);
+        app
+    }
+
+    /// Draw two overlapping 50 pt squares, the first at (`x`, 10), and select only them.
+    fn select_two_squares(app: &mut VectorcraftApp, x: f64) {
+        let a = app.run("shape.rectangle", json!({"x": x, "y": 10, "width": 50, "height": 50})).unwrap()["id"].clone();
+        let b = app.run("shape.rectangle", json!({"x": x + 30.0, "y": 40, "width": 50, "height": 50})).unwrap()["id"].clone();
+        app.run("select.set", json!({"ids": [a, b]})).unwrap();
+    }
+
+    /// The kind and geometric bounds of each object on the first layer.
+    fn objects(app: &VectorcraftApp) -> Vec<(&'static str, [f64; 4])> {
+        let doc = &app.session.active().unwrap().doc;
+        let kind = |n: &vectorcraft_engine::doc::Node| if matches!(n.kind, NodeKind::Path { .. }) { "path" } else { "other" };
+        let bounds = |n: &vectorcraft_engine::doc::Node| n.geometric_bounds().map_or([0.0; 4], |b| [b.x0, b.y0, b.x1, b.y1]);
+        doc.layers[0].children().unwrap().iter().map(|n| (kind(n), bounds(n))).collect()
+    }
+
+    /// Cmd/Ctrl+4 pressed through the shortcut handler.
+    fn press_cmd_4(app: &mut VectorcraftApp) {
+        let ctx = egui::Context::default();
+        let ev = egui::Event::Key { key: egui::Key::Num4, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::COMMAND };
+        let mut out = ctx.run_ui(egui::RawInput { events: vec![ev], ..Default::default() }, |ui| crate::shortcuts::handle(app, ui.ctx()));
+        out.textures_delta.clear();
+    }
+
+    /// A click on the panel button that screen readers name `label`. egui finds what the pointer
+    /// is over from the frame before, so the move gets a frame of its own.
+    fn click_button(app: &mut VectorcraftApp, label: &str) {
+        crate::i18n::set_current(crate::i18n::Lang::EN);
+        let ctx = egui::Context::default();
+        ctx.enable_accesskit();
+        crate::theme::install_fonts(&ctx);
+        let mut time = 0.0;
+        let mut frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+            time += 0.1;
+            let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(300.0, 200.0));
+            let input = egui::RawInput { events, time: Some(time), screen_rect: Some(screen), ..Default::default() };
+            let mut out = ctx.run_ui(input, |ui| show(app, ui));
+            out.textures_delta.clear();
+            out
+        };
+        frame(app, vec![]);
+        let out = frame(app, vec![]);
+        let nodes = &out.platform_output.accesskit_update.as_ref().expect("an accessibility tree").nodes;
+        let node = nodes.iter().find(|(_, n)| n.label() == Some(label) && n.role() == egui::accesskit::Role::Button);
+        let b = node.unwrap_or_else(|| panic!("no button named {label:?}")).1.bounds().expect("bounds");
+        let at = egui::pos2((b.x0 + b.x1) as f32 * 0.5, (b.y0 + b.y1) as f32 * 0.5);
+        let button =
+            |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE };
+        frame(app, vec![egui::Event::PointerMoved(at)]);
+        frame(app, vec![button(true)]);
+        frame(app, vec![button(false)]);
+    }
+
+    /// A click on the panel menu item labeled `label`.
+    fn click_menu_item(app: &mut VectorcraftApp, label: &str) {
+        let ctx = egui::Context::default();
+        crate::theme::install_fonts(&ctx);
+        let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+            let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(236.0, 400.0));
+            let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), events, ..Default::default() }, |ui| menu(app, ui));
+            out.textures_delta.clear();
+            crate::tests_removeanchors::shapes_text(&out.shapes.iter().map(|c| c.shape.clone()).collect::<Vec<_>>())
+        };
+        let labels = frame(app, vec![]);
+        let at = labels.iter().find(|(t, _)| t.trim() == label).map(|(_, r)| r.center()).unwrap_or_else(|| panic!("no {label:?} in {labels:?}"));
+        let button =
+            |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE };
+        frame(app, vec![egui::Event::PointerMoved(at), button(true)]);
+        frame(app, vec![button(false)]);
+    }
+
+    /// Cmd/Ctrl+4 is Repeat Pathfinder's default key. Keyboard Shortcuts lists the command with
+    /// it, and no other default has the key.
+    #[test]
+    fn cmd_4_is_repeat_pathfinder() {
+        use crate::shortcut_editor::{command_for_key, default_command_shortcut};
+        assert_eq!(default_command_shortcut("pathfinder.repeat"), Some("Cmd+4"));
+        assert_eq!(command_for_key("Cmd+4"), Some("pathfinder.repeat"));
+        let chord = crate::shortcuts::parse("Cmd+4").expect("parses");
+        assert_eq!((chord.modifiers, chord.logical_key), (egui::Modifiers::COMMAND, egui::Key::Num4));
+        assert_eq!(crate::menus::pretty_shortcut("Cmd+4"), if cfg!(target_os = "macos") { "⌘4" } else { "Ctrl+4" });
+        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let listed = app.run("shortcuts.list", json!({"query": "pathfinder.repeat"})).unwrap();
+        let rows: Vec<_> = listed.as_array().expect("rows").iter().map(|r| (r["label"].clone(), r["default"].clone())).collect();
+        assert_eq!(rows, [(json!("Repeat Pathfinder"), json!("Cmd+4"))], "Keyboard Shortcuts lists it");
+        assert_eq!(app.run("shortcuts.conflicts", json!({})).unwrap(), json!([]), "no other default has the key");
+    }
+
+    /// After Unite from the panel, Cmd/Ctrl+4 unites the two squares selected next, and the panel
+    /// menu's Repeat Unite item, which runs the same command, unites a third pair.
+    #[test]
+    fn cmd_4_repeats_the_operation_a_panel_button_ran_last() {
+        let mut app = two_squares();
+        click_button(&mut app, "Unite");
+        let first = ("path", [10.0, 10.0, 90.0, 90.0]);
+        assert_eq!(objects(&app), [first], "the panel's Unite merged the first pair");
+        select_two_squares(&mut app, 110.0);
+        assert!(crate::menus::enabled(&app, "pathfinder.repeat"));
+        press_cmd_4(&mut app);
+        let second = ("path", [110.0, 10.0, 190.0, 90.0]);
+        assert_eq!(objects(&app), [first, second], "Cmd+4 merged the second pair");
+        select_two_squares(&mut app, 210.0);
+        click_menu_item(&mut app, "Repeat Unite");
+        assert_eq!(objects(&app), [first, second, ("path", [210.0, 10.0, 290.0, 90.0])], "the menu item merged the third pair");
+    }
+
+    /// Before a button of the panel has run, Repeat Pathfinder is disabled and Cmd/Ctrl+4 leaves
+    /// the selected squares as they are, with a message in the status bar. After a button has
+    /// run, the command is disabled again while nothing is selected.
+    #[test]
+    fn cmd_4_does_nothing_before_a_panel_button_has_run() {
+        let mut app = two_squares();
+        let before = objects(&app);
+        assert_eq!(before.len(), 2);
+        assert!(!crate::menus::enabled(&app, "pathfinder.repeat"));
+        press_cmd_4(&mut app);
+        assert_eq!(objects(&app), before, "Cmd+4 changed nothing");
+        assert_eq!(app.ui.status, "no Pathfinder operation applied yet");
+        click_button(&mut app, "Unite");
+        app.run("select.none", json!({})).unwrap();
+        assert!(!crate::menus::enabled(&app, "pathfinder.repeat"), "nothing selected");
     }
 }

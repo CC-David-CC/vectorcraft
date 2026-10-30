@@ -4468,6 +4468,7 @@ theme	Appearance	외관
 @msg	no PNG encoder	PNG 인코더가 없습니다
 @msg	no document open	열린 문서가 없습니다
 @msg	no effect applied yet	아직 적용된 효과가 없습니다
+@msg	no Pathfinder operation applied yet	아직 적용된 패스파인더 작업이 없습니다
 @msg	no such perspective grid preset	해당 원근 격자 프리셋이 없습니다
 @msg	no such recent file	해당 최근 파일이 없습니다
 @msg	no such recent font	해당 최근 글꼴이 없습니다

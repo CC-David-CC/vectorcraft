@@ -4543,6 +4543,7 @@ swatch	Bright Violet	ビビッドバイオレット
 @msg	no PNG encoder	PNG エンコーダーがありません
 @msg	no document open	ドキュメントが開かれていません
 @msg	no effect applied yet	まだ効果を適用していません
+@msg	no Pathfinder operation applied yet	まだパスファインダーの操作を適用していません
 @msg	no such perspective grid preset	指定された遠近グリッドプリセットが見つかりません
 @msg	no such recent file	指定された最近使ったファイルが見つかりません
 @msg	no such recent font	指定された最近使ったフォントが見つかりません

@@ -4078,6 +4078,7 @@ theme	Appearance	Erscheinungsbild
 @msg	no document	kein Dokument
 @msg	no document open	kein Dokument geöffnet
 @msg	no effect applied yet	noch kein Effekt angewendet
+@msg	no Pathfinder operation applied yet	noch keine Pathfinder-Operation angewendet
 @msg	no effect at index {k}	kein Effekt bei Index {k}
 @msg	no end record	kein Endeintrag
 @msg	no file manager here	hier gibt es keinen Dateimanager

@@ -4068,6 +4068,7 @@ axis	Both	Båda
 @msg	no document	inget dokument
 @msg	no document open	inget dokument är öppet
 @msg	no effect applied yet	ingen effekt har använts än
+@msg	no Pathfinder operation applied yet	ingen banfinnaråtgärd har använts än
 @msg	no effect at index {k}	ingen effekt vid index {k}
 @msg	no end record	ingen slutpost
 @msg	no file manager here	ingen filhanterare här

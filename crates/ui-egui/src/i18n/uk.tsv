@@ -4181,6 +4181,7 @@ axis	Both	Обидві
 @msg	no document	немає документа
 @msg	no document open	немає відкритого документа
 @msg	no effect applied yet	ефект ще не застосований
+@msg	no Pathfinder operation applied yet	операцію обробки контурів ще не застосовано
 @msg	no effect at index {k}	немає ефекту з індексом {k}
 @msg	no end record	немає кінцевого запису
 @msg	no file manager here	тут немає файлового менеджера

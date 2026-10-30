@@ -4814,6 +4814,7 @@ imageTrace	Outline	Körvonal
 @msg	no document	nincs dokumentum
 @msg	no document open	nincs megnyitott dokumentum
 @msg	no effect applied yet	még nincs alkalmazott effektus
+@msg	no Pathfinder operation applied yet	még nincs alkalmazott útvonalkezelő-művelet
 @msg	no effect at index {k}	ezen az indexen nincs effektus: {k}
 @msg	no end record	nincs záró rekord
 @msg	no file manager here	itt nincs fájlkezelő

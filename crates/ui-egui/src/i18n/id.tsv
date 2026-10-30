@@ -4151,6 +4151,7 @@ imageTrace	Outline	Kontur
 @msg	no document	tidak ada dokumen
 @msg	no document open	tidak ada dokumen yang terbuka
 @msg	no effect applied yet	belum ada efek yang diterapkan
+@msg	no Pathfinder operation applied yet	belum ada operasi Pathfinder yang diterapkan
 @msg	no effect at index {k}	tidak ada efek pada indeks {k}
 @msg	no end record	tidak ada rekaman akhir
 @msg	no file manager here	tidak ada pengelola file di sini
