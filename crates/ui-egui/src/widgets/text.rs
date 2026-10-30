@@ -250,7 +250,6 @@ pub(super) fn recessed_text(
             let now = ui.input(|i| i.time);
             let flash_end = ui.data(|d| d.get_temp::<f64>(id.with("invalid-flash")));
             let invalid = flash_end.is_some_and(|end| now <= end);
-            eprintln!("RECESSED_TEXT_DRAW: now={} flash_end={:?} invalid={}", now, flash_end, invalid);
             if invalid {
                 ui.ctx().request_repaint();
             }
