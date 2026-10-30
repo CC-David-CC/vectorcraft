@@ -26,24 +26,38 @@ pub const PATHFINDERS: [(&str, &str, &str); 6] = [
     ("dc-pf-minus-back", "Minus Back", "minusBack"),
 ];
 
-fn run(app: &mut VectorcraftApp, _ui: &Ui, op: &str, label: &str) {
-    if app.run(&format!("object.pathfinder.{op}"), json!({})).is_ok() {
-        app.last_pathfinder = Some((op.to_string(), label.to_string()));
-    }
+/// Returns the minimum number of operands required by a Pathfinder operation.
+pub(crate) fn minimum_operands(op: &str) -> usize {
+    if matches!(op, "outline" | "divide") { 1 } else { 2 }
 }
 
-/// Repeat Pathfinder (`pathfinder.repeat`, Cmd/Ctrl+4, the panel menu's Repeat item): the
-/// operation a button of the panel ran last, on the selection.
+/// The panel name for one of the ten repeatable Shape Mode or Pathfinder operations.
+pub fn operation_label(op: &str) -> Option<&'static str> {
+    SHAPE_MODES.into_iter().chain(PATHFINDERS).find(|(_, _, id)| *id == op).map(|(_, label, _)| label)
+}
+
+fn run(app: &mut VectorcraftApp, op: &str) {
+    // The command path reports a failed operation in the status bar.
+    let _ = app.run(&format!("object.pathfinder.{op}"), json!({}));
+}
+
+/// Repeat the last successful Shape Mode or Pathfinder operation on the current selection.
 pub fn repeat(app: &mut VectorcraftApp) -> Result<Value, String> {
     match app.last_pathfinder.clone() {
-        Some((op, _)) => app.run(&format!("object.pathfinder.{op}"), json!({})),
+        Some(op) => {
+            let min = minimum_operands(&op);
+            if operands(app) < min {
+                return Err("Select two or more objects, or a group".into());
+            }
+            app.run(&format!("object.pathfinder.{op}"), json!({}))
+        }
         None => Err("no Pathfinder operation applied yet".into()),
     }
 }
 
 /// How many objects the selection gives an operation: a group selected alone counts as the shapes
 /// the operation takes from it, nested groups included (#1450, #1635).
-fn operands(app: &VectorcraftApp) -> usize {
+pub(crate) fn operands(app: &VectorcraftApp) -> usize {
     let alone = app.session.active().filter(|d| d.selection.len() == 1).and_then(|d| d.doc.node(*d.selection.objects.first()?));
     match alone.filter(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Group { .. })) {
         Some(group) => vectorcraft_engine::cmd::shape_count(group),
@@ -64,13 +78,13 @@ fn button(ui: &mut Ui, icon: &str, tip: &str, selected: bool, n: usize, min: usi
 
 /// A Shape Mode button clicked: Alt makes a compound shape of the selection in `mode`; with
 /// members of compound shapes selected they take `mode`; otherwise operation `op` runs.
-fn shape_mode(app: &mut VectorcraftApp, ui: &Ui, op: &str, label: &str, mode: ShapeMode, members: bool) {
+fn shape_mode(app: &mut VectorcraftApp, ui: &Ui, op: &str, mode: ShapeMode, members: bool) {
     if ui.input(|i| i.modifiers.alt) {
         crate::menus::invoke(app, "object.compoundShape.make", json!({"mode": mode.name()}));
     } else if members {
         crate::menus::invoke(app, "object.compoundShape.setMode", json!({"mode": mode.name()}));
     } else {
-        run(app, ui, op, label);
+        run(app, op);
     }
 }
 
@@ -88,7 +102,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         let count = if modes.is_empty() { n } else { n.max(2) };
         for ((icon, tip, op), mode) in SHAPE_MODES.into_iter().zip(ShapeMode::ALL) {
             if button(ui, icon, tip, shared == Some(mode), count, 2) {
-                shape_mode(app, ui, op, tip, mode, !modes.is_empty());
+                shape_mode(app, ui, op, mode, !modes.is_empty());
             }
         }
         let resp = ui.add_enabled_ui(expand, |ui| widgets::flat_button_fit(ui, "Expand", 90.0)).inner;
@@ -100,9 +114,9 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 5.0;
         for (icon, tip, op) in PATHFINDERS {
-            let min = if op == "outline" || op == "divide" { 1 } else { 2 };
+            let min = minimum_operands(op);
             if button(ui, icon, tip, false, n, min) {
-                run(app, ui, op, tip);
+                run(app, op);
             }
         }
     });
@@ -122,7 +136,8 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
     let label = app
         .last_pathfinder
         .as_ref()
-        .map(|(_, l)| crate::i18n::fmt(tl!("Repeat {name}"), &[("name", tl!(l))]))
+        .and_then(|op| operation_label(op))
+        .map(|label| crate::i18n::fmt(tl!("Repeat {name}"), &[("name", tl!(label))]))
         .unwrap_or_else(|| tl!("Repeat Pathfinder").into());
     if menu_item(ui, &label, crate::menus::enabled(app, "pathfinder.repeat"), false) {
         crate::menus::invoke(app, "pathfinder.repeat", json!({}));
@@ -325,6 +340,11 @@ mod tests {
     /// A click on the panel button that screen readers name `label`. egui finds what the pointer
     /// is over from the frame before, so the move gets a frame of its own.
     fn click_button(app: &mut VectorcraftApp, label: &str) {
+        click_button_with_modifiers(app, label, egui::Modifiers::NONE);
+    }
+
+    /// Click a panel button with a modifier held across the input frames.
+    fn click_button_with_modifiers(app: &mut VectorcraftApp, label: &str, modifiers: egui::Modifiers) {
         crate::i18n::set_current(crate::i18n::Lang::EN);
         let ctx = egui::Context::default();
         ctx.enable_accesskit();
@@ -333,6 +353,8 @@ mod tests {
         let mut frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
             time += 0.1;
             let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(300.0, 200.0));
+            let mut events = events;
+            events.insert(0, egui::Event::ModifiersChanged(modifiers));
             let input = egui::RawInput { events, time: Some(time), screen_rect: Some(screen), ..Default::default() };
             let mut out = ctx.run_ui(input, |ui| show(app, ui));
             out.textures_delta.clear();
@@ -344,8 +366,7 @@ mod tests {
         let node = nodes.iter().find(|(_, n)| n.label() == Some(label) && n.role() == egui::accesskit::Role::Button);
         let b = node.unwrap_or_else(|| panic!("no button named {label:?}")).1.bounds().expect("bounds");
         let at = egui::pos2((b.x0 + b.x1) as f32 * 0.5, (b.y0 + b.y1) as f32 * 0.5);
-        let button =
-            |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE };
+        let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers };
         frame(app, vec![egui::Event::PointerMoved(at)]);
         frame(app, vec![button(true)]);
         frame(app, vec![button(false)]);
@@ -375,6 +396,7 @@ mod tests {
     fn cmd_4_is_repeat_pathfinder() {
         use crate::shortcut_editor::{command_for_key, default_command_shortcut};
         assert_eq!(default_command_shortcut("pathfinder.repeat"), Some("Cmd+4"));
+        assert_eq!(default_command_shortcut("effect.applyLast"), Some("Cmd+Shift+E"));
         assert_eq!(command_for_key("Cmd+4"), Some("pathfinder.repeat"));
         let chord = crate::shortcuts::parse("Cmd+4").expect("parses");
         assert_eq!((chord.modifiers, chord.logical_key), (egui::Modifiers::COMMAND, egui::Key::Num4));
@@ -384,6 +406,8 @@ mod tests {
         let rows: Vec<_> = listed.as_array().expect("rows").iter().map(|r| (r["label"].clone(), r["default"].clone())).collect();
         assert_eq!(rows, [(json!("Repeat Pathfinder"), json!("Cmd+4"))], "Keyboard Shortcuts lists it");
         assert_eq!(app.run("shortcuts.conflicts", json!({})).unwrap(), json!([]), "no other default has the key");
+        assert_eq!(vectorcraft_engine::command_specs().iter().filter(|c| c.shortcut == Some("Cmd+4")).count(), 0);
+        assert_eq!(crate::menus::UI_COMMANDS.iter().filter(|c| c.2 == "Cmd+4").map(|c| c.0).collect::<Vec<_>>(), ["pathfinder.repeat"]);
     }
 
     /// After Unite from the panel, Cmd/Ctrl+4 unites the two squares selected next, and the panel
@@ -404,11 +428,11 @@ mod tests {
         assert_eq!(objects(&app), [first, second, ("path", [210.0, 10.0, 290.0, 90.0])], "the menu item merged the third pair");
     }
 
-    /// Before a button of the panel has run, Repeat Pathfinder is disabled and Cmd/Ctrl+4 leaves
-    /// the selected squares as they are, with a message in the status bar. After a button has
+    /// Before a repeatable operation has run, Repeat Pathfinder is disabled and Cmd/Ctrl+4 leaves
+    /// the selected squares as they are, with a message in the status bar. After an operation has
     /// run, the command is disabled again while nothing is selected.
     #[test]
-    fn cmd_4_does_nothing_before_a_panel_button_has_run() {
+    fn cmd_4_does_nothing_before_an_operation_has_run() {
         let mut app = two_squares();
         let before = objects(&app);
         assert_eq!(before.len(), 2);
@@ -419,5 +443,91 @@ mod tests {
         click_button(&mut app, "Unite");
         app.run("select.none", json!({})).unwrap();
         assert!(!crate::menus::enabled(&app, "pathfinder.repeat"), "nothing selected");
+        assert!(app.run("pathfinder.repeat", json!({})).is_err());
+    }
+
+    /// One selected path cannot supply the operands for Unite; the shortcut reports the failure.
+    #[test]
+    fn repeat_with_one_path_keeps_art_and_history() {
+        let mut app = two_squares();
+        click_button(&mut app, "Unite");
+        let before = objects(&app);
+        assert_eq!(before.len(), 1);
+        assert!(!crate::menus::enabled(&app, "pathfinder.repeat"));
+        press_cmd_4(&mut app);
+        assert_eq!(objects(&app), before);
+        assert_eq!(app.ui.status, "Select two or more objects, or a group");
+        assert_eq!(app.last_pathfinder.as_deref(), Some("unite"));
+    }
+
+    /// A direct command replaces the panel's previous operation and supplies the menu name.
+    #[test]
+    fn direct_operation_becomes_the_one_repeated() {
+        let mut app = two_squares();
+        click_button(&mut app, "Unite");
+        select_two_squares(&mut app, 110.0);
+        app.run("object.pathfinder.intersect", json!({})).unwrap();
+        assert_eq!(app.last_pathfinder.as_deref(), Some("intersect"));
+        select_two_squares(&mut app, 210.0);
+        click_menu_item(&mut app, "Repeat Intersect");
+        assert_eq!(objects(&app).last(), Some(&("path", [240.0, 40.0, 260.0, 60.0])));
+        assert_eq!(app.last_pathfinder.as_deref(), Some("intersect"));
+    }
+
+    /// A rejected operation leaves the prior successful operation available to repeat.
+    #[test]
+    fn failed_operation_keeps_history() {
+        let mut app = two_squares();
+        click_button(&mut app, "Unite");
+        assert!(app.run("object.pathfinder.intersect", json!({"precision": -1.0})).is_err());
+        assert_eq!(app.last_pathfinder.as_deref(), Some("unite"));
+        select_two_squares(&mut app, 110.0);
+        click_menu_item(&mut app, "Repeat Unite");
+        assert_eq!(objects(&app).last(), Some(&("path", [110.0, 10.0, 190.0, 90.0])));
+    }
+
+    /// A successful Trap keeps the last repeatable operation in history.
+    #[test]
+    fn successful_trap_keeps_history() {
+        let mut app = two_squares();
+        click_button(&mut app, "Unite");
+        let mut rect = |x: f64, color: &str| {
+            let id = app.run("shape.rectangle", json!({"x": x, "y": 10, "width": 50, "height": 50})).unwrap()["id"].clone();
+            app.run("paint.setFill", json!({"color": color})).unwrap();
+            id
+        };
+        let (a, b) = (rect(110.0, "#ffff00"), rect(160.0, "#0000ff"));
+        app.run("select.set", json!({"ids": [a, b]})).unwrap();
+        app.run("object.pathfinder.trap", json!({"thickness": 2, "tintReduction": 30})).unwrap();
+        assert_eq!(app.last_pathfinder.as_deref(), Some("unite"));
+    }
+
+    /// Repeat reads the current options instead of replaying the earlier command's settings.
+    #[test]
+    fn repeat_uses_current_pathfinder_options() {
+        let mut app = two_squares();
+        app.run("object.pathfinder.divide", json!({})).unwrap();
+        assert_eq!(app.last_pathfinder.as_deref(), Some("divide"));
+        app.run("object.pathfinder.options", json!({"precision": 1.0})).unwrap();
+        let a = app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap()["id"].clone();
+        let b = app.run("shape.rectangle", json!({"x": 0, "y": 99.5, "width": 100, "height": 100})).unwrap()["id"].clone();
+        app.run("select.set", json!({"ids": [a, b]})).unwrap();
+        let id = app.run("pathfinder.repeat", json!({})).unwrap()["ids"][0].as_u64().unwrap();
+        let group = app.session.active().unwrap().doc.node(NodeId(id)).unwrap();
+        assert_eq!(group.children().unwrap().len(), 2);
+        assert_eq!(app.last_pathfinder.as_deref(), Some("divide"));
+    }
+
+    /// Compound-shape creation and member edits leave destructive Pathfinder history alone.
+    #[test]
+    fn compound_shape_commands_do_not_set_history() {
+        let mut app = two_squares();
+        let a = app.session.active().unwrap().selection.objects[0];
+        click_button_with_modifiers(&mut app, "Minus Front", egui::Modifiers::ALT);
+        assert_eq!(app.last_pathfinder, None);
+        app.run("select.set", json!({"ids": [a.0]})).unwrap();
+        click_button(&mut app, "Unite");
+        assert_eq!(app.last_pathfinder, None);
+        assert!(!crate::menus::enabled(&app, "pathfinder.repeat"));
     }
 }

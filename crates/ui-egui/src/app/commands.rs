@@ -88,6 +88,12 @@ impl VectorcraftApp {
         {
             crate::ime::note_application_edit(self, &ctx, ime_view, ime_target, ime_before);
         }
+        if r.is_ok()
+            && let Some(op) = id.strip_prefix("object.pathfinder.")
+            && panels::pathfinder::operation_label(op).is_some()
+        {
+            self.last_pathfinder = Some(op.to_string());
+        }
         if r.is_ok() && matches!(id, "edit.copy" | "edit.cut") {
             self.publish_clipboard();
         }

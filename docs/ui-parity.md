@@ -244,9 +244,7 @@ tools, never checked side by side) isn't captured row by row.
 ## Keyboard shortcuts
 
 Cmd/Ctrl+/ (`appearance.addFill`) and Cmd/Ctrl+Alt+/ (`appearance.addStroke`) add a new fill and a new stroke to the
-selected objects, as the Appearance panel's Add New Fill and Add New Stroke buttons do. Cmd/Ctrl+4
-(`pathfinder.repeat`, Repeat Pathfinder) runs the operation a Pathfinder panel button ran last on the selected
-objects, as the panel menu's Repeat item does.
+selected objects, as the Appearance panel's Add New Fill and Add New Stroke buttons do.
 
 ~110 distinct modified shortcuts on menu commands plus single-key tool shortcuts for the default toolbar
 (`crates/tools/src/catalog.rs`), a shortcut editor with chords, and saved sets. Cmd/Ctrl+Alt+L (`ui.newLayer`) opens Layer Options for a new layer, as an Alt-click on the Layers panel's New Layer button does, and Cmd/Ctrl+L still adds a layer without the dialog. F8 (`ui.symbolOptions`) opens Symbol Options for a new symbol made from the selection, as the Symbols panel's New Symbol button does. Not yet diffed item by item
@@ -308,6 +306,7 @@ next unit in the order a right-click on a ruler lists them, from Feet back to Po
 | Pathfinder panel on one group selected alone; a greyed-out button says what it needs | partial | #1450; the group's members are combined; one plain path selected alone stays disabled (the public documentation doesn't say what the operations do to a single path) |
 | Pathfinder Divide: an open cutting line splits a filled path | done | #1307; straight, crossed, bent and curved cutters, holes and frontmost appearance regression-tested; native automation: independent piece movement, one Undo/Redo, saved-document round trip and window capture; existing bounded-map fallback remains |
 | Pathfinder panel › Pathfinder Options…: Precision, Remove Redundant Points, Divide and Outline Will Remove Unpainted Artwork | done | #3426; `object.pathfinder.options`, kept in the preferences; defaults (0.01 pt, both off) keep the earlier results; [spec](https://helpx.adobe.com/illustrator/desktop/manage-objects/reshape-transform-objects/pathfinder-panel-overview.html) |
+| Cmd/Ctrl+4 repeats the last successful Shape Mode or Pathfinder operation on the selection | done | Direct `object.pathfinder.*` commands set history too; Trap, compound-shape edits and live effects do not. Repeat uses current Pathfinder Options; [key spec](https://web.archive.org/web/20260726060015/https://helpx.adobe.com/illustrator/using/default-keyboard-shortcuts.html), [menu spec](https://helpx.adobe.com/illustrator/desktop/manage-objects/reshape-transform-objects/pathfinder-panel-overview.html) |
 | Pathfinder panel: compound shapes (Make, Release and Expand Compound Shape in the panel menu, Alt-click a Shape Mode, a Shape Mode for selected members, the Expand button) | partial | #4522; `object.compoundShape.make`/`setMode`/`release`/`expand`; members stay editable, the area draws, exports and saves; the button of the members' shared mode is lit; [spec](https://helpx.adobe.com/illustrator/desktop/manage-objects/reshape-transform-objects/create-compound-shapes-with-pathfinder.html); missing: blends, envelopes and warps as members, question marks for mixed modes, hit-testing by the area |
 | Canvas context menu | done | Layers rows, panels and type have none (gap) |
 | SVG Interactivity panel: JavaScript for each object's events and the document's linked JavaScript files, written to SVG and read back as text | done | `svgInteractivity.*`, `ui.javascriptFilesDialog` |

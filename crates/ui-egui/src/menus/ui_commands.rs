@@ -579,7 +579,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "pathfinder.repeat",
         "Repeat Pathfinder",
         "Cmd+4",
-        "{} repeat the last Pathfinder operation run from the Pathfinder panel on the selection; an error until a button has run",
+        "{} repeat the last successful Shape Mode or Pathfinder operation on the selection with the current Pathfinder Options; an error until one has run",
     ),
     (
         "file.export.pdf",

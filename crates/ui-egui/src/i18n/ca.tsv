@@ -5105,6 +5105,7 @@
 @msg	no document	no hi ha document
 @msg	no document open	no hi ha cap document obert
 @msg	no effect applied yet	encara no s’ha aplicat cap efecte
+@msg	no Pathfinder operation applied yet	encara no s’ha aplicat cap operació del Cercador de traçats
 @msg	no effect at index {k}	no hi ha cap efecte a l’índex {k}
 @msg	no empty artboards to delete	no hi ha taulers buits per suprimir
 @msg	no end record	no hi ha registre final
