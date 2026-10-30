@@ -5570,3 +5570,47 @@ anchor	Points:	ポイント:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	`inkLimit`、`removeWhiteOverprint` または `overprintBlack` を指定してください
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	印刷インキの修正は CMYK ドキュメントで使用できます。先にファイル › ドキュメントのカラーモード › CMYK カラーを選択してください
 @msg	`{key}` must be 0..{max}	`{key}` は 0..{max} にしてください
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	テキストを分割
+	Combine Point Text	ポイント文字を結合
+	Remove Breaks	改行を削除
+	Split Text at Cursor	カーソル位置でテキストを分割
+	Set Alignment, Keep Position	位置を保って行揃えを設定
+	Reset Text Transform	テキストの変形をリセット
+	Replace Missing Fonts…	見つからないフォントを置換…
+	Replace Missing Fonts	見つからないフォントを置換
+	Remove Line Breaks	強制改行を削除
+	Remove Paragraph Breaks	段落の区切りを削除
+	Break Text into Lines	テキストを行に分割
+	Break Text into Paragraphs	テキストを段落に分割
+	Break Text into Words	テキストを単語に分割
+	Break Text into Glyphs	テキストを字形に分割
+	Reset Text Transform and Scale	テキストの変形と比率をリセット
+	Set Alignment, Keep Position:	位置を保って行揃えを設定:
+	Break Text into:	テキストを分割:
+	Split at Cursor	カーソル位置で分割
+	Reset Transform	変形をリセット
+	Shift-click: break into paragraphs	Shift+クリック:段落に分割
+	Alt-click: reset the horizontal scale too	Alt+クリック:水平比率もリセット
+breakText	Lines	行
+breakText	Words	単語
+breakText	Glyphs	字形
+@msg	Click in type with a Type tool to split it	分割するには、文字ツールでテキスト内をクリックしてください
+@msg	Too many type objects to change at once	一度に変更するテキストオブジェクトが多すぎます
+@msg	Too many pieces to make at once	一度に作成する部分が多すぎます
+@msg	Select horizontal point or area type whose text fits	テキストが収まっている横組みのポイント文字またはエリア内文字を選択してください
+@msg	Nothing to split at the cursor	カーソル位置で分割するものがありません
+@msg	Select two or more one-line point type objects on one baseline to combine	結合するには、同じベースライン上にある 1 行のポイント文字オブジェクトを 2 つ以上選択してください
+@msg	No line breaks to remove	削除する強制改行がありません
+@msg	No paragraph breaks to remove	削除する段落の区切りがありません
+@msg	Too many breaks to remove at once	一度に削除する改行が多すぎます
+@msg	Select point type	ポイント文字を選択してください
+@msg	The point type is aligned that way already	ポイント文字はすでにその行揃えです
+@msg	The point type has no transform to reset	ポイント文字にリセットする変形がありません
+@msg	No fonts are missing	見つからないフォントはありません
+@msg	the replacement font is not available	置換用のフォントを使用できません
+@msg	missing `align`	`align` がありません
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` は lines、paragraphs、words、glyphs のいずれかにしてください({other} は使用できません)
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` は "line" または "paragraph" にしてください({other} は使用できません)
+@msg	`align` must be "left", "center" or "right", not {other}	`align` は "left"、"center"、"right" のいずれかにしてください({other} は使用できません)

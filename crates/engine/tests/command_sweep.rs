@@ -559,12 +559,66 @@ fn structured_junk() {
         ("addon.pen.reshape", json!({"id": 2, "segment": 0, "t": "x", "dx": 1, "dy": 1, "mode": "symmetric"})),
         ("addon.pen.nextSegment", json!({"curved": "yes"})),
         ("addon.pen.closeJoin", json!({"ids": [u64::MAX]})),
+        ("addon.cleanup.breakText", json!({"by": "glyphs", "ids": [0, 1, 2, 3, 4, 5, 6, 7, 8, u64::MAX]})),
+        ("addon.cleanup.breakText", json!({"by": ["lines"]})),
+        ("addon.cleanup.breakText", json!({"by": "paragraphs"})),
+        ("addon.cleanup.breakText", json!({"by": "words", "ids": "all"})),
+        ("addon.cleanup.combineText", json!({"ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})),
+        ("addon.cleanup.combineText", json!({"ids": [-1, 1e308]})),
+        ("addon.cleanup.removeBreaks", json!({"kind": "paragraph", "ids": [1, 2, 3, 4, 5, 6, 7, 8, u64::MAX]})),
+        ("addon.cleanup.removeBreaks", json!({"kind": 3})),
+        ("addon.cleanup.removeBreaks", json!({"kind": "line", "ids": null})),
+        ("addon.cleanup.splitText", json!({"at": 1e308})),
+        ("addon.cleanup.alignInPlace", json!({"align": "right", "ids": [1, 2, 3, 4, 5, 6, 7, 8]})),
+        ("addon.cleanup.alignInPlace", json!({"align": null, "ids": [-1]})),
+        ("addon.cleanup.resetTextTransform", json!({"scale": "yes"})),
+        ("addon.cleanup.resetTextTransform", json!({"scale": true, "ids": [1, 2, 3, 4, 5, 6, 7, 8]})),
+        ("addon.cleanup.replaceFonts", json!({"font": ""})),
+        ("addon.cleanup.replaceFonts", json!({"font": ["Source Sans 3"]})),
+        ("addon.cleanup.replaceFonts", json!({"font": "\u{0}"})),
     ];
     let mut failures = vec![];
     for fx in Fixture::ALL {
         for (id, p) in &cases {
             if let Some(f) = probe(fx, id, p) {
                 failures.push(f);
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
+}
+
+/// Artwork Cleanup's text tools while a Type tool edits type with junk ranges (past the end,
+/// reversed, inside a character): never a panic, and the document stays sound.
+#[test]
+fn cleanup_text_tools_with_junk_editing_ranges() {
+    let ranges = [(0, u64::MAX / 4), (u64::MAX, 1), (5, 5), (1, 2), (u64::MAX / 4, u64::MAX / 4)];
+    let mut failures = vec![];
+    for fx in Fixture::ALL {
+        let mut texts = vec![];
+        for l in &fx.session().doc().unwrap().doc.layers {
+            l.walk(&mut |n| {
+                if matches!(n.kind, vectorcraft_doc::NodeKind::Text(_)) {
+                    texts.push(n.id.0);
+                }
+            });
+        }
+        for id in texts {
+            for (anchor, caret) in ranges {
+                for (cmd, p) in [("addon.cleanup.splitText", json!({})), ("addon.cleanup.removeBreaks", json!({"kind": "paragraph"}))] {
+                    let mut s = fx.session();
+                    let r = catch_quiet(|| {
+                        let _ = s.execute("select.set", &json!({"ids": [id]}));
+                        let _ = s.select_tool("type", Default::default());
+                        s.set_tool_option("textSelection", &json!({"editing": id, "anchor": anchor, "caret": caret}));
+                        no_panic(s.execute(cmd, &p))
+                    });
+                    if let Err(msg) = r {
+                        failures.push(format!("PANIC {cmd} {id} {anchor}..{caret} [{fx:?}]: {msg}"));
+                    } else if let Err(e) = check_session(&s) {
+                        failures.push(format!("{cmd} {id} {anchor}..{caret} [{fx:?}]: {e}"));
+                    }
+                }
             }
         }
     }

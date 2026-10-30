@@ -5520,3 +5520,47 @@ anchor	Points:	點：
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	請指定 `inkLimit`、`removeWhiteOverprint` 或 `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	印刷油墨修正適用於 CMYK 文件：請先選擇 檔案 › 文件色彩模式 › CMYK 色彩
 @msg	`{key}` must be 0..{max}	`{key}` 必須為 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	分割文字
+	Combine Point Text	合併點文字
+	Remove Breaks	移除換行
+	Split Text at Cursor	在游標處分割文字
+	Set Alignment, Keep Position	設定對齊並保持位置
+	Reset Text Transform	重設文字變形
+	Replace Missing Fonts…	取代遺失的字體…
+	Replace Missing Fonts	取代遺失的字體
+	Remove Line Breaks	移除強制換行
+	Remove Paragraph Breaks	移除段落換行
+	Break Text into Lines	將文字分割為行
+	Break Text into Paragraphs	將文字分割為段落
+	Break Text into Words	將文字分割為單字
+	Break Text into Glyphs	將文字分割為字符
+	Reset Text Transform and Scale	重設文字變形與縮放
+	Set Alignment, Keep Position:	設定對齊並保持位置：
+	Break Text into:	將文字分割為：
+	Split at Cursor	在游標處分割
+	Reset Transform	重設變形
+	Shift-click: break into paragraphs	Shift-按一下：分割為段落
+	Alt-click: reset the horizontal scale too	Alt+點擊：一併重設水平縮放
+breakText	Lines	行
+breakText	Words	單字
+breakText	Glyphs	字符
+@msg	Click in type with a Type tool to split it	請用文字工具在文字中按一下以分割
+@msg	Too many type objects to change at once	一次要變更的文字物件過多
+@msg	Too many pieces to make at once	一次要建立的部分過多
+@msg	Select horizontal point or area type whose text fits	請選取文字能完整容納的橫排點文字或區域文字
+@msg	Nothing to split at the cursor	游標處沒有可分割的內容
+@msg	Select two or more one-line point type objects on one baseline to combine	請選取同一基線上兩個或更多單行點文字物件以合併
+@msg	No line breaks to remove	沒有要移除的強制換行
+@msg	No paragraph breaks to remove	沒有要移除的段落換行
+@msg	Too many breaks to remove at once	一次要移除的換行過多
+@msg	Select point type	請選取點文字
+@msg	The point type is aligned that way already	點文字已經是這種對齊方式
+@msg	The point type has no transform to reset	點文字沒有可重設的變形
+@msg	No fonts are missing	沒有遺失的字體
+@msg	the replacement font is not available	替代字體無法使用
+@msg	missing `align`	未提供 `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` 必須是 lines、paragraphs、words 或 glyphs，而不是 {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` 必須是 "line" 或 "paragraph"，而不是 {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` 必須是 "left"、"center" 或 "right"，而不是 {other}

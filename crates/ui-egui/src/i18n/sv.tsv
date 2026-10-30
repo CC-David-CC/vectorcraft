@@ -5938,3 +5938,47 @@ shape	Open	Öppen
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	ange `inkLimit`, `removeWhiteOverprint` eller `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Tryckfärgskorrigeringar fungerar i CMYK-dokument: välj först Fil › Dokumentets färgläge › CMYK-färg
 @msg	`{key}` must be 0..{max}	`{key}` måste vara 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Dela upp text
+	Combine Point Text	Kombinera punkttext
+	Remove Breaks	Ta bort brytningar
+	Split Text at Cursor	Dela text vid markören
+	Set Alignment, Keep Position	Ställ in justering, behåll position
+	Reset Text Transform	Återställ texttransformering
+	Replace Missing Fonts…	Ersätt saknade typsnitt…
+	Replace Missing Fonts	Ersätt saknade typsnitt
+	Remove Line Breaks	Ta bort radbrytningar
+	Remove Paragraph Breaks	Ta bort styckebrytningar
+	Break Text into Lines	Dela upp text i rader
+	Break Text into Paragraphs	Dela upp text i stycken
+	Break Text into Words	Dela upp text i ord
+	Break Text into Glyphs	Dela upp text i glyfer
+	Reset Text Transform and Scale	Återställ texttransformering och skala
+	Set Alignment, Keep Position:	Ställ in justering, behåll position:
+	Break Text into:	Dela upp text i:
+	Split at Cursor	Dela vid markören
+	Reset Transform	Återställ transformering
+	Shift-click: break into paragraphs	Shift-klicka: dela upp i stycken
+	Alt-click: reset the horizontal scale too	Alt-klick: återställ även den horisontella skalan
+breakText	Lines	Rader
+breakText	Words	Ord
+breakText	Glyphs	Glyfer
+@msg	Click in type with a Type tool to split it	Klicka i text med ett textverktyg för att dela den
+@msg	Too many type objects to change at once	För många textobjekt att ändra på en gång
+@msg	Too many pieces to make at once	För många delar att skapa på en gång
+@msg	Select horizontal point or area type whose text fits	Markera vågrät punkt- eller områdestext vars text får plats
+@msg	Nothing to split at the cursor	Inget att dela vid markören
+@msg	Select two or more one-line point type objects on one baseline to combine	Markera två eller fler enradiga punkttextobjekt på samma baslinje för att kombinera dem
+@msg	No line breaks to remove	Inga radbrytningar att ta bort
+@msg	No paragraph breaks to remove	Inga styckebrytningar att ta bort
+@msg	Too many breaks to remove at once	För många brytningar att ta bort på en gång
+@msg	Select point type	Markera punkttext
+@msg	The point type is aligned that way already	Punkttexten är redan justerad så
+@msg	The point type has no transform to reset	Punkttexten har ingen transformering att återställa
+@msg	No fonts are missing	Inga typsnitt saknas
+@msg	the replacement font is not available	ersättningstypsnittet är inte tillgängligt
+@msg	missing `align`	`align` saknas
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` måste vara lines, paragraphs, words eller glyphs, inte {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` måste vara "line" eller "paragraph", inte {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` måste vara "left", "center" eller "right", inte {other}

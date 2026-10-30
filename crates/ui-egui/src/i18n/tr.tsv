@@ -5840,3 +5840,47 @@ anchor	Points:	Noktalar:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	`inkLimit`, `removeWhiteOverprint` veya `overprintBlack` verin
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Baskı Mürekkebi Düzeltmeleri CMYK belgelerinde çalışır: önce Dosya › Belge Renk Modu › CMYK Rengi'ni seçin
 @msg	`{key}` must be 0..{max}	`{key}` 0..{max} olmalıdır
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Metni Böl
+	Combine Point Text	Nokta Metnini Birleştir
+	Remove Breaks	Kesmeleri Kaldır
+	Split Text at Cursor	Metni İmleçte Böl
+	Set Alignment, Keep Position	Hizalamayı Ayarla, Konumu Koru
+	Reset Text Transform	Metin Dönüşümünü Sıfırla
+	Replace Missing Fonts…	Eksik Yazı Tiplerini Değiştir…
+	Replace Missing Fonts	Eksik Yazı Tiplerini Değiştir
+	Remove Line Breaks	Satır Sonlarını Kaldır
+	Remove Paragraph Breaks	Paragraf Sonlarını Kaldır
+	Break Text into Lines	Metni Satırlara Böl
+	Break Text into Paragraphs	Metni Paragraflara Böl
+	Break Text into Words	Metni Sözcüklere Böl
+	Break Text into Glyphs	Metni Gliflere Böl
+	Reset Text Transform and Scale	Metin Dönüşümünü ve Ölçeğini Sıfırla
+	Set Alignment, Keep Position:	Hizalamayı Ayarla, Konumu Koru:
+	Break Text into:	Metni Böl:
+	Split at Cursor	İmleçte Böl
+	Reset Transform	Dönüşümü Sıfırla
+	Shift-click: break into paragraphs	Shift tuşuyla tıklayın: paragraflara böl
+	Alt-click: reset the horizontal scale too	Alt tuşuyla tıklayın: yatay ölçeği de sıfırla
+breakText	Lines	Satırlar
+breakText	Words	Sözcükler
+breakText	Glyphs	Glifler
+@msg	Click in type with a Type tool to split it	Bölmek için bir Yazım Aracıyla metnin içine tıklayın
+@msg	Too many type objects to change at once	Bir kerede değiştirilecek çok fazla metin nesnesi var
+@msg	Too many pieces to make at once	Bir kerede oluşturulacak çok fazla parça var
+@msg	Select horizontal point or area type whose text fits	Metni sığan yatay nokta veya alan metni seçin
+@msg	Nothing to split at the cursor	İmleçte bölünecek bir şey yok
+@msg	Select two or more one-line point type objects on one baseline to combine	Birleştirmek için aynı taban çizgisinde iki veya daha fazla tek satırlı nokta metni nesnesi seçin
+@msg	No line breaks to remove	Kaldırılacak satır sonu yok
+@msg	No paragraph breaks to remove	Kaldırılacak paragraf sonu yok
+@msg	Too many breaks to remove at once	Bir kerede kaldırılacak çok fazla kesme var
+@msg	Select point type	Nokta metni seçin
+@msg	The point type is aligned that way already	Nokta metni zaten bu şekilde hizalı
+@msg	The point type has no transform to reset	Nokta metninin sıfırlanacak dönüşümü yok
+@msg	No fonts are missing	Eksik yazı tipi yok
+@msg	the replacement font is not available	yedek yazı tipi kullanılamıyor
+@msg	missing `align`	`align` eksik
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by`, lines, paragraphs, words veya glyphs olmalı, {other} değil
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind`, "line" veya "paragraph" olmalı, {other} değil
+@msg	`align` must be "left", "center" or "right", not {other}	`align`, "left", "center" veya "right" olmalı, {other} değil

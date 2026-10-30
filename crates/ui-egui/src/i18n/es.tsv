@@ -5825,3 +5825,47 @@ anchor	Points:	Puntos:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	indique `inkLimit`, `removeWhiteOverprint` u `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Las correcciones de tinta para impresión funcionan en documentos CMYK: elija primero Archivo › Modo de color del documento › Color CMYK
 @msg	`{key}` must be 0..{max}	`{key}` debe ser 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Dividir texto
+	Combine Point Text	Combinar texto de punto
+	Remove Breaks	Quitar saltos
+	Split Text at Cursor	Dividir texto en el cursor
+	Set Alignment, Keep Position	Definir alineación manteniendo la posición
+	Reset Text Transform	Restablecer transformación del texto
+	Replace Missing Fonts…	Reemplazar fuentes que faltan…
+	Replace Missing Fonts	Reemplazar fuentes que faltan
+	Remove Line Breaks	Quitar saltos de línea
+	Remove Paragraph Breaks	Quitar saltos de párrafo
+	Break Text into Lines	Dividir texto en líneas
+	Break Text into Paragraphs	Dividir texto en párrafos
+	Break Text into Words	Dividir texto en palabras
+	Break Text into Glyphs	Dividir texto en glifos
+	Reset Text Transform and Scale	Restablecer transformación y escala del texto
+	Set Alignment, Keep Position:	Definir alineación manteniendo la posición:
+	Break Text into:	Dividir texto en:
+	Split at Cursor	Dividir en el cursor
+	Reset Transform	Restablecer transformación
+	Shift-click: break into paragraphs	Shift+clic: dividir en párrafos
+	Alt-click: reset the horizontal scale too	Alt+clic: restablecer también la escala horizontal
+breakText	Lines	Líneas
+breakText	Words	Palabras
+breakText	Glyphs	Glifos
+@msg	Click in type with a Type tool to split it	Haga clic en un texto con una herramienta Texto para dividirlo
+@msg	Too many type objects to change at once	Demasiados objetos de texto para cambiarlos a la vez
+@msg	Too many pieces to make at once	Demasiadas piezas para crearlas a la vez
+@msg	Select horizontal point or area type whose text fits	Seleccione texto de punto o de área horizontal cuyo texto quepa
+@msg	Nothing to split at the cursor	No hay nada que dividir en el cursor
+@msg	Select two or more one-line point type objects on one baseline to combine	Seleccione dos o más objetos de texto de punto de una línea sobre la misma línea base para combinarlos
+@msg	No line breaks to remove	No hay saltos de línea que quitar
+@msg	No paragraph breaks to remove	No hay saltos de párrafo que quitar
+@msg	Too many breaks to remove at once	Demasiados saltos para quitarlos a la vez
+@msg	Select point type	Seleccione texto de punto
+@msg	The point type is aligned that way already	El texto de punto ya está alineado así
+@msg	The point type has no transform to reset	El texto de punto no tiene ninguna transformación que restablecer
+@msg	No fonts are missing	No falta ninguna fuente
+@msg	the replacement font is not available	la fuente de reemplazo no está disponible
+@msg	missing `align`	falta `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` debe ser lines, paragraphs, words o glyphs, no {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` debe ser "line" o "paragraph", no {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` debe ser "left", "center" o "right", no {other}

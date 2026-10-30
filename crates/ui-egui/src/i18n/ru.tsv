@@ -5860,3 +5860,47 @@ anchor	Points:	Точки:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	задайте `inkLimit`, `removeWhiteOverprint` или `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Исправления печатных красок работают в документах CMYK: сначала выберите Файл › Цветовой режим документа › Цвет CMYK
 @msg	`{key}` must be 0..{max}	`{key}` должен быть 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Разбить текст
+	Combine Point Text	Объединить текст из точки
+	Remove Breaks	Удалить разрывы
+	Split Text at Cursor	Разбить текст у курсора
+	Set Alignment, Keep Position	Задать выравнивание, сохранив положение
+	Reset Text Transform	Сбросить трансформацию текста
+	Replace Missing Fonts…	Заменить отсутствующие шрифты…
+	Replace Missing Fonts	Заменить отсутствующие шрифты
+	Remove Line Breaks	Удалить разрывы строк
+	Remove Paragraph Breaks	Удалить разрывы абзацев
+	Break Text into Lines	Разбить текст на строки
+	Break Text into Paragraphs	Разбить текст на абзацы
+	Break Text into Words	Разбить текст на слова
+	Break Text into Glyphs	Разбить текст на глифы
+	Reset Text Transform and Scale	Сбросить трансформацию и масштаб текста
+	Set Alignment, Keep Position:	Выравнивание с сохранением положения:
+	Break Text into:	Разбить текст на:
+	Split at Cursor	Разбить у курсора
+	Reset Transform	Сбросить трансформацию
+	Shift-click: break into paragraphs	Shift+щелчок: разбить на абзацы
+	Alt-click: reset the horizontal scale too	Alt+щелчок: сбросить и масштаб по горизонтали
+breakText	Lines	Строки
+breakText	Words	Слова
+breakText	Glyphs	Глифы
+@msg	Click in type with a Type tool to split it	Щёлкните в тексте инструментом «Текст», чтобы разбить его
+@msg	Too many type objects to change at once	Слишком много текстовых объектов для изменения за один раз
+@msg	Too many pieces to make at once	Слишком много частей для создания за один раз
+@msg	Select horizontal point or area type whose text fits	Выделите горизонтальный текст из точки или в области, текст которого помещается
+@msg	Nothing to split at the cursor	У курсора нечего разбивать
+@msg	Select two or more one-line point type objects on one baseline to combine	Выделите два или более однострочных объекта текста из точки на одной базовой линии, чтобы объединить их
+@msg	No line breaks to remove	Нет разрывов строк для удаления
+@msg	No paragraph breaks to remove	Нет разрывов абзацев для удаления
+@msg	Too many breaks to remove at once	Слишком много разрывов для удаления за один раз
+@msg	Select point type	Выделите текст из точки
+@msg	The point type is aligned that way already	Текст из точки уже так выровнен
+@msg	The point type has no transform to reset	У текста из точки нет трансформации для сброса
+@msg	No fonts are missing	Отсутствующих шрифтов нет
+@msg	the replacement font is not available	шрифт для замены недоступен
+@msg	missing `align`	не указан `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` должен быть lines, paragraphs, words или glyphs, а не {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` должен быть "line" или "paragraph", а не {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` должен быть "left", "center" или "right", а не {other}

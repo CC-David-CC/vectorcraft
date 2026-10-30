@@ -5483,3 +5483,47 @@ anchor	Points:	Điểm:
 @msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	hãy cho `inkLimit`, `removeWhiteOverprint` hoặc `overprintBlack`
 @msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Sửa mực in hoạt động trên tài liệu CMYK: trước hết chọn Tệp › Chế độ màu tài liệu › Màu CMYK
 @msg	`{key}` must be 0..{max}	`{key}` phải là 0..{max}
+
+# Artwork Cleanup add-on: its text tools (Object › Plug-ins › Artwork Cleanup and the panel's Text row) and their messages.
+	Break Text	Tách văn bản
+	Combine Point Text	Kết hợp chữ điểm
+	Remove Breaks	Xóa ngắt
+	Split Text at Cursor	Tách văn bản tại con trỏ
+	Set Alignment, Keep Position	Đặt căn lề, giữ vị trí
+	Reset Text Transform	Đặt lại biến đổi văn bản
+	Replace Missing Fonts…	Thay thế phông chữ thiếu…
+	Replace Missing Fonts	Thay thế phông chữ thiếu
+	Remove Line Breaks	Xóa xuống dòng
+	Remove Paragraph Breaks	Xóa ngắt đoạn
+	Break Text into Lines	Tách văn bản thành dòng
+	Break Text into Paragraphs	Tách văn bản thành đoạn
+	Break Text into Words	Tách văn bản thành từ
+	Break Text into Glyphs	Tách văn bản thành glyph
+	Reset Text Transform and Scale	Đặt lại biến đổi và tỷ lệ văn bản
+	Set Alignment, Keep Position:	Đặt căn lề, giữ vị trí:
+	Break Text into:	Tách văn bản thành:
+	Split at Cursor	Tách tại con trỏ
+	Reset Transform	Đặt lại biến đổi
+	Shift-click: break into paragraphs	Shift-bấm: tách thành đoạn
+	Alt-click: reset the horizontal scale too	Alt-bấm: đặt lại cả tỷ lệ ngang
+breakText	Lines	Dòng
+breakText	Words	Từ
+breakText	Glyphs	Glyph
+@msg	Click in type with a Type tool to split it	Nhấp vào văn bản bằng công cụ Chữ để tách văn bản
+@msg	Too many type objects to change at once	Quá nhiều đối tượng chữ để thay đổi cùng lúc
+@msg	Too many pieces to make at once	Quá nhiều phần để tạo cùng lúc
+@msg	Select horizontal point or area type whose text fits	Chọn chữ điểm hoặc chữ vùng nằm ngang có văn bản vừa khung
+@msg	Nothing to split at the cursor	Không có gì để tách tại con trỏ
+@msg	Select two or more one-line point type objects on one baseline to combine	Chọn hai đối tượng chữ điểm một dòng trở lên trên cùng một đường cơ sở để kết hợp
+@msg	No line breaks to remove	Không có xuống dòng nào để xóa
+@msg	No paragraph breaks to remove	Không có ngắt đoạn nào để xóa
+@msg	Too many breaks to remove at once	Quá nhiều ngắt để xóa cùng lúc
+@msg	Select point type	Chọn chữ điểm
+@msg	The point type is aligned that way already	Chữ điểm đã được căn như vậy
+@msg	The point type has no transform to reset	Chữ điểm không có biến đổi nào để đặt lại
+@msg	No fonts are missing	Không thiếu phông chữ nào
+@msg	the replacement font is not available	phông chữ thay thế không có sẵn
+@msg	missing `align`	thiếu `align`
+@msg	`by` must be lines, paragraphs, words or glyphs, not {other}	`by` phải là lines, paragraphs, words hoặc glyphs, không phải {other}
+@msg	`kind` must be "line" or "paragraph", not {other}	`kind` phải là "line" hoặc "paragraph", không phải {other}
+@msg	`align` must be "left", "center" or "right", not {other}	`align` phải là "left", "center" hoặc "right", không phải {other}

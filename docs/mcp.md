@@ -5731,6 +5731,49 @@ topmost piece.
 {"name":"run_command","arguments":{"command":"addon.cleanup.simplify","params":{"tolerance":40,"protectCorners":true}}}
 ```
 
+### Text tools
+
+The add-on's text tools act on the selected type (or `ids`), each as one undo step, and refuse with an error when there
+is nothing for them to do. The pieces they make are point type that keeps its characters' styles, each placed so the
+glyph of its first character lands where it was drawn.
+
+- `addon.cleanup.breakText {by?, ids?}` turns each horizontal point or area type object into point type objects, one
+  per line (`by: "lines"`, the default), paragraph (`"paragraphs"`), word (`"words"`) or glyph (`"glyphs"`; a ligature
+  stays one piece). Spaces between the pieces go. A paragraph keeps its lines: where the layout wrapped one, the piece
+  has a forced line break. Justified lines close up, and a paragraph broken out whole keeps its bullet (not its
+  number; the other pieces have no list markers). Type on a path, vertical type, threaded type and area type whose text doesn't fit stay as they are and are
+  listed in `skipped`.
+- `addon.cleanup.combineText {ids?}` merges one-line horizontal point type into as few objects as it can, every glyph
+  staying where it was (within 0.01 pt). Pieces turned and sheared alike whose baselines lie within 0.4 em of each
+  other join left to right (a baseline a little off becomes baseline shift); a space goes between pieces at least half
+  a space apart, and tracking on the character before each piece keeps its place. A gap wider than 10 em, an overlap of
+  more than 1 em, another look (paint, opacity, effects) or a piece that can't keep its place once joined (a ligature
+  forming across the join) starts another object. Each object made takes the place and paint of its leftmost piece. The
+  main use is type from a PDF that arrives one glyph per object.
+- `addon.cleanup.removeBreaks {kind, ids?}` removes the forced line breaks (`kind: "line"`) or paragraph returns
+  (`"paragraph"`) in the characters selected with a Type tool, else in all the text of the selected type. A break
+  between two words becomes a space; merged paragraphs take the first one's paragraph style.
+- `addon.cleanup.splitText {}` works while a Type tool edits horizontal point or area type: the text before the
+  selected characters, those characters and the text after them become point type objects (at a bare cursor, the text
+  before and after it). Spaces at the ends of each piece go; a piece that starts inside a left-aligned line takes a
+  first-line indent, so its later lines stay where they were. Editing ends with the pieces selected.
+- `addon.cleanup.alignInPlace {align, ids?}` aligns every paragraph of each horizontal point type object `left`,
+  `center` or `right` and moves the object so its longest line stays where it is: a single line doesn't move at all.
+- `addon.cleanup.resetTextTransform {scale?, ids?}` takes the rotation, shear and reflection off point type, keeping its
+  size and the centre of its text. With `scale: true` the horizontal scale goes too, the object's and each character's.
+- `addon.cleanup.replaceFonts {font?}` sets every character of the document's type whose font family isn't available
+  in `font` (by default the default type font, Source Sans 3), in that family's style closest to the one it had.
+
+In the panel, the Text row (which the panel can hide) runs them: Shift-click Lines to break into paragraphs, and
+Alt-click Reset Transform to reset the horizontal scale too. Recovering live text from outlines, combining vertical
+type and evening out horizontal scales are not there yet.
+
+```json
+{"name":"run_command","arguments":{"command":"addon.cleanup.breakText","params":{"by":"words"}}}
+{"name":"run_command","arguments":{"command":"addon.cleanup.combineText","params":{}}}
+{"name":"run_command","arguments":{"command":"addon.cleanup.removeBreaks","params":{"kind":"paragraph"}}}
+```
+
 ## Path Precision Tools add-on
 
 Path Precision Tools is a built-in add-on for exact anchor and path work: its commands are `addon.pathtools.*`, and in
