@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Smart Pen, a built-in add-on beyond Illustrator; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Effects: bounded effect length inputs clamp on commit and reject invalid text visibly (#4638)) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -19,6 +19,7 @@ Artboard Options forwards the active Artboard tool's Scale Artwork with Artboard
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | Effects: bounded length inputs clamp on commit and reject invalid text visibly (#4638); scores unchanged. |
 | 2026-10-29 | minor | File formats: attached Affinity Recolor Adjustment (RcRA) layers import as color overlays (#4420); scores unchanged. |
 | 2026-10-29 | minor | Type core: copied text runs retain character attributes across document switches and canvas pastes (#4459); scores unchanged. |
 | 2026-10-29 | minor | Type core: soft return (Shift+Enter forced line break, U+2028) breaks lines without starting new paragraphs (#2754); scores unchanged. |

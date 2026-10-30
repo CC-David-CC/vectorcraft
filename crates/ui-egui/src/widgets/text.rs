@@ -237,7 +237,15 @@ pub(super) fn recessed_text(
         .allocate_ui_with_layout(vec2(width, height), layout, |ui| {
             ui.set_min_size(vec2(width, height));
             let rect = ui.max_rect();
-            ui.painter().rect(rect, 5.0, t.input, Stroke::new(1.0, if editing { t.accent } else { t.input_border }), StrokeKind::Inside);
+            let invalid = ui.data_mut(|d| d.remove_temp::<bool>(id.with("invalid-flash"))).unwrap_or(false);
+            let stroke = if invalid {
+                Stroke::new(1.5, t.accent_strong)
+            } else if editing {
+                Stroke::new(1.0, t.accent)
+            } else {
+                Stroke::new(1.0, t.input_border)
+            };
+            ui.painter().rect(rect, 5.0, t.input, stroke, StrokeKind::Inside);
             let margin = egui::Margin { left: 7, right: 7, top: if rows > 1 { 4 } else { 0 }, bottom: 0 };
             let resp = egui::Frame::NONE
                 .inner_margin(margin)
