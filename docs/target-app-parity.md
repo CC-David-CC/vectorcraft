@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Libraries panel: art dragged off the canvas and swatches dragged in are added where they are dropped; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Path Precision Tools add-on: the Parametric Shape Tool; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -1229,6 +1229,19 @@ Kernels in `vectorcraft_pathops::addons::pathtools`. Tests: `addons::pathtools` 
 undo step, bad params refused, the brush's stroke one step) and `edit_toolbar::tests::addon_tools_are_in_the_drawer_not_the_toolbars`.
 Commands: `docs/mcp.md` › Path Precision Tools add-on.
 
+The add-on's Parametric Shape Tool (2026-10-30) draws ten kinds of shape that stay editable as numbers (rectangle,
+ellipse, polygon and star with 3 to 1,000 sides or points, ring, arrow, cross, heart, gear, speech bubble; corner radius
+limited to the middle of a side): a drag from the centre sizes and turns one, the arrow keys change its count and values
+while dragging, handles edit a selected one, a double-click places one with the last settings, and its panel edits the
+numbers. A shape is a plain path whose numbers and outline fingerprint sit in one object-data entry that SVG export
+leaves out; moving, rotating or scaling it keeps it editable, editing its anchors makes it a plain path. Convert to
+Parametric Shape recognises plain rectangles, ellipses and regular polygons. Geometry in
+`vectorcraft_pathops::addons::pathtools::shapes`. Tests: `shapes` in `vectorcraft-pathops` (each kind, ranges,
+recovery after transforms, recognition), `addons::parametric_shape` in `vectorcraft-tools` (drag, keys, handles,
+stored data), `cmd::addons::pathtools::tests` in `vectorcraft-engine` (each command one undo step, bad params refused,
+anchor edits and transforms, the SVG export filter, the tool's gestures), `addons::pathtools::tests` in
+`vectorcraft-ui-egui` (submenu and panel) and `command_sweep`.
+
 ## Smart Pen add-on (2026-10-30)
 
 A VectorCraft addition, not an Illustrator feature, so no area score moves. Object › Plug-ins › Smart Pen selects the
@@ -1260,6 +1273,7 @@ spot colours, carry a colour adjustment, or are RGB, CMYK or grayscale images
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | Path Precision Tools add-on: the Parametric Shape Tool; evidence added; scores unchanged. |
 | 2026-10-30 | minor | Presentation Mode fits the active artboard and hides selections, guides, grids and artboard edges; scores and estimates unchanged |
 | 2026-10-30 | minor | Color Effects add-on: Select by Color Kind; scores and estimates unchanged |
 | 2026-10-30 | minor | Gradient stop popover: an eyedropper samples the stop's colour from the art (#4681); scores and estimates unchanged |
