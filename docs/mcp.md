@@ -5898,6 +5898,7 @@ the other colour adjustments (Effect › Color Adjustments); each colour keeps i
 |---|---|---|
 | `addon.color.exposure` (Exposure…) | `exposure` stops −20…20 (0), `offset` −0.5…0.5 (0), `gamma` 0.1…10 (1) | Scales the light in linear light (each stop doubles or halves it, mostly in the highlights), adds the offset (shadows and midtones) and applies the gamma |
 | `addon.color.desaturate` (Desaturate) | none | Turns every colour to the grey of its lightness |
+| `addon.color.duotone` (Duotone…) | `tones`, `skipSpot` (below) | Prints each colour's tone with one to four inks |
 | `addon.color.invert` (Invert Colors) | none | Turns every colour to its RGB inverse |
 
 `addon.color.filter {effect, params?, fill?, stroke?, includeImages?, includePatterns?, ids?}` applies any colour
@@ -5951,3 +5952,59 @@ those paths.
 
 Not yet: stochastic (FM) and radial patterns, a dot-gain curve, per-screen separation settings, and type or symbols as
 dots.
+
+### Duotone (live)
+
+`addon.color.duotone` (Effect › Color Effects › Duotone…, also in Object › Plug-ins › Color Effects and the panel's Inks)
+prints the grey-equivalent tone of each colour the object paints with one to four inks: a monotone, duotone, tritone or
+quadtone. It is a colour adjustment like the add-on's others, so it goes on through `effect.apply`, stacks with the
+other adjustments and works as a filter through `addon.color.filter {effect: "addon.color.duotone", params}`; Expand
+Appearance gives the same colours as the filter.
+
+| Parameter | Values (default) | Does |
+|---|---|---|
+| `tones` | up to four `{color, swatch?, curve?, active?}` (one black tone) | The inks; tones past the fourth are left out, and one not `active` (true) is skipped |
+| `tones[].color` | `#rrggbb`, `[r, g, b]` or a colour object (`#000000`) | The ink's colour; with a `swatch`, that swatch's colour (the dialog fills it in) |
+| `tones[].swatch` | a global or spot swatch's name (none) | The swatch the ink is |
+| `tones[].curve` | `"tint,ink tint,ink …"` or `[[tint, ink], …]`, 0…100, at most 64 points (`"0,0 100,100"`) | The tone's tint to the ink's tint, a smooth curve through the points, flat past its ends |
+| `skipSpot` | bool (false) | Colours linked to a spot swatch keep their colour |
+
+The tone of a colour is its grey equivalent (a grey's ink; for other colours one minus their luma). With one tone of a
+swatch the document has, the result is a tint of that swatch, linked to it, so a spot tone separates onto its own plate.
+With several tones the inks overprint: the result is the CMYK mix of their tints, each ink multiplying what the others
+leave of the paper. A colour links to one swatch at one tint, so a mix of several spot inks becomes process colour.
+Gradient stops, type, gradient meshes and embedded images are recoloured as by the other adjustments.
+
+```json
+{"name":"run_command","arguments":{"command":"effect.apply","params":{"effect":"addon.color.duotone","params":{"tones":[{"color":"#000000"},{"color":{"model":"cmyk","c":0,"m":0.5,"y":1,"k":0},"swatch":"Orange","curve":"0,0 50,70 100,100"}]}}}}
+```
+
+The dialog has a row per tone (on or off, a colour chip, the swatch or Process Color with its hex value), the curve of the
+tone picked under Curve (the graph, its points and Reset to Linear or Reset to Inverse) and Skip Objects with Spot Colors.
+
+Not yet: an opaque undercoat, tones for type only, extra gradient stops for smoother tints, and buttons that flip a
+curve or set it to 100 %.
+
+### Print Ink Fixes
+
+`addon.color.printFixes {scope?, inkLimit?, excludePureBlack?, removeWhiteOverprint?, overprintBlack?, textOnly?, fill?,
+stroke?, ids?}` (Object › Plug-ins › Color Effects › Print Ink Fixes…, also under the panel's Inks) prepares a CMYK
+document's inks for print, as one undo step:
+
+| Parameter | Values (default) | Does |
+|---|---|---|
+| `scope` | `selection`, `document` (the selection, or the document while nothing is selected) | What it fixes; `ids` stand for the selection |
+| `inkLimit` | total ink % 1…400, 0 off (off) | CMYK colours (solid, gradient stops, gradient meshes) with more ink than this are scaled down to it; colours of spot swatches and Registration stay |
+| `excludePureBlack` | bool (true) | Black-only CMYK and grey colours keep their ink |
+| `removeWhiteOverprint` | bool (false) | White fills and strokes, and characters', stop overprinting |
+| `overprintBlack` | black % 1…100, 0 off (off) | Black-only and grey fills and strokes this dark or darker overprint, as `edit.colors.overprintBlack` sets it (not spot-linked or rich blacks) |
+| `textOnly` | bool (false) | Overprint Black on type only |
+| `fill`, `stroke` | bool (true) | Which paints the fixes reach |
+
+It returns `changed`, `inkLimited` (paints and meshes scaled), `whiteOverprintRemoved` and `blackOverprinted` (objects);
+nothing changed is no undo step. It needs a CMYK document (File › Document Color Mode › CMYK Color) and refuses an RGB
+one, out of range values and a request with no fix on.
+
+```json
+{"name":"run_command","arguments":{"command":"addon.color.printFixes","params":{"scope":"document","inkLimit":300,"removeWhiteOverprint":true,"overprintBlack":100}}}
+```

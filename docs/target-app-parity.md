@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (3D Extrude & Bevel, Inflate and Rotate apply to type, which stays editable (#4715); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Color Effects add-on: Duotone and Print Ink Fixes; scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -1282,12 +1282,21 @@ Tests: `addons::halftone` in `vectorcraft-effects` (settings, tone, caps), `addo
 `vectorcraft-render` (drawn as dots, settings change them, unchanged art not sampled again, too many cells draw the
 object as it is), `expand_appearance_gives_the_dots_object_vector_halftone_makes`,
 `exports_write_the_dots_as_paths` and `a_halftone_past_the_caps_leaves_the_object_as_it_is` in `vectorcraft-engine`,
-and `the_halftone_effect_dialog_has_the_command_fields_and_edits_the_effect` in `vectorcraft-ui-egui`. Commands:
-`docs/mcp.md` › Color Effects add-on.
+and `the_halftone_effect_dialog_has_the_command_fields_and_edits_the_effect` in `vectorcraft-ui-egui`. Duotone
+(`addon.color.duotone`) maps each colour's tone through one to four inks with their curves, a tint of a lone tone's
+swatch (linked, so a spot tone separates on its plate) or the multiplied CMYK of several, live and through
+`addon.color.filter`; Print Ink Fixes (`addon.color.printFixes`) limits total ink, removes white overprint and sets
+black overprint in a CMYK document as one undo step. Tests: `addons::duotone::tests` in `vectorcraft-effects` (spot
+tints, curves, multiplied inks, skip spot), `duotone_*` and `cmd::addons::color::print_fixes::tests` in
+`vectorcraft-engine` (drawn and expanded, filter equals live then expand, ink limit, overprint, one undo step, bad
+params and RGB documents refused), and `the_duotone_dialog_has_a_row_per_tone_and_the_curve_of_one` and
+`print_ink_fixes_opens_its_options_and_runs_on_ok` in `vectorcraft-ui-egui`. Commands: `docs/mcp.md` › Color Effects
+add-on.
 ## Revision history
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | Color Effects add-on: live Duotone (one to four inks, spot tones kept) and Print Ink Fixes; scores and estimates unchanged |
 | 2026-10-30 | minor | 3D Extrude & Bevel, Inflate and Rotate apply to type, which stays editable (#4715); scores and estimates unchanged |
 | 2026-10-30 | minor | Color Effects add-on: live Vector Halftone; scores and estimates unchanged |
 | 2026-10-30 | minor | Path Precision Tools add-on: the Parametric Shape Tool; evidence added; scores unchanged. |
