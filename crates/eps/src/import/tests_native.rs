@@ -1490,6 +1490,84 @@ fn area_type_and_type_on_a_path_come_from_the_text_document() {
     assert!(!r.warnings.iter().any(|w| w.contains("couldn't be read")), "{:?}", r.warnings);
 }
 
+/// A story of `text` on frame 0 whose layout sets glyphs `advance` wide round the outside of a
+/// circle of radius `radius`, the circle's length between their centres `fraction` of an advance.
+fn round_story(text: &str, advance: f64, radius: f64, fraction: f64) -> String {
+    let n = text.chars().count();
+    let (mut xs, mut ys, mut matrices, mut ends) = (vec![], vec![], vec![], vec![]);
+    for i in 0..=n {
+        // From the circle's left, clockwise on the canvas (y down), feet towards its centre.
+        let angle = std::f64::consts::PI + i as f64 * advance * fraction / radius;
+        let along = (-angle.sin(), angle.cos());
+        xs.push(radius * angle.cos() - along.0 * advance * 0.5);
+        ys.push(radius * angle.sin() - along.1 * advance * 0.5);
+        matrices.push(format!("{} {} {} {} 0 0", along.0, along.1, -along.1, along.0));
+        ends.push(i as f64 * advance);
+    }
+    let nums = |v: &[f64]| v.iter().map(|x| format!("{x}")).collect::<Vec<_>>().join(" ");
+    format!(
+        "<< /0 << /0 ({text}) /5 << /0 [ << /0 << /0 << /0 () /5 << /0 0 >> /6 0 >> >> /1 {n} >> ] >> \
+         /6 << /0 [ << /0 << /0 << /0 () /5 0 /6 << /1 12.0 >> >> >> /1 {n} >> ] >> >> /1 << /0 [ << /0 0 >> ] \
+         /2 [ << /99 /PC /6 [ << /99 /F /6 [ << /99 /L /6 [ << /99 /S /6 [ << /99 /G /21 << /1 [ {} ] /2 [ {} ] /3 [ {} ] /4 [ {} ] >> >> ] >> ] >> ] >> ] >> ] >> >>",
+        nums(&xs),
+        nums(&ys),
+        matrices.join(" "),
+        nums(&ends)
+    )
+}
+
+/// The file closes type up round the outside of a curve (its layout puts the glyphs' centres
+/// closer than their advances), though the frame has no spacing of its own: the type comes in
+/// spaced as the layout is, not at its advances, so it doesn't run on past where the page ends it.
+#[test]
+fn type_round_a_circle_is_spaced_as_the_file_lays_it_out() {
+    // A circle of radius 40 round the middle of the page, in four cubics from its right, clockwise
+    // on the page; the type from its left, over the top, round almost all of it.
+    let k = 40.0 * 0.552_284_75;
+    let points = [
+        (90.0, 50.0),
+        (90.0, 50.0 - k),
+        (50.0 + k, 10.0),
+        (50.0, 10.0),
+        (50.0 - k, 10.0),
+        (10.0, 50.0 - k),
+        (10.0, 50.0),
+        (10.0, 50.0 + k),
+        (50.0 - k, 90.0),
+        (50.0, 90.0),
+        (50.0 + k, 90.0),
+        (90.0, 50.0 + k),
+        (90.0, 50.0),
+    ];
+    let all: Vec<(f64, f64)> = points.iter().map(|(x, y)| canvas(*x, *y)).collect();
+    let segment = |i: usize| (0..4).map(|j| format!("{} {}", all[i * 3 + j].0, all[i * 3 + j].1)).collect::<Vec<_>>().join(" ");
+    let frame =
+        format!("<< /0 << /0 [ 0 0 ] /1 << /0 [ {} ] >> /2 << /0 2 /6 [ 2.0 5.99 ] >> >> >>", (0..4).map(segment).collect::<Vec<_>>().join(" "));
+    // Glyphs 5 apart, their centres 5 × 40/48 apart round the circle: spaced 8 above the path.
+    let doc = document_of(&[frame], &[round_story("abcdefgh", 5.0, 40.0, 40.0 / 48.0)]);
+    let art = native_with_text(&(layer("Back", true, &square(10, 10)) + &layer("Spare", false, &text_object(0))), &doc);
+    let r = import(&eps(&page_square(10, 10), &art)).unwrap();
+    let texts = text_of(&r.document.layers[1]);
+    assert_eq!(texts.len(), 1, "{:?}", r.warnings);
+    let t = texts[0];
+    assert!(matches!(t.kind, vectorcraft_doc::TextKind::OnPath { .. }), "{:?}", t.kind);
+    assert!((t.path_spacing - 8.0).abs() < 0.05, "{}", t.path_spacing);
+    // Laid out, the glyphs' centres are 40/48 of their advances apart round the circle.
+    let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+    let centres: Vec<(f64, f64)> = layout
+        .glyphs
+        .iter()
+        .map(|g| (g.origin.x + g.angle.cos() * g.advance * 0.5 - 50.0, g.origin.y + g.angle.sin() * g.advance * 0.5 - 50.0, g.advance))
+        .map(|(x, y, a)| (y.atan2(x), a))
+        .collect();
+    assert_eq!(centres.len(), 8);
+    for w in centres.windows(2) {
+        let turn = (w[1].0 - w[0].0 + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI;
+        let ratio = turn.abs() * 40.0 / ((w[0].1 + w[1].1) * 0.5);
+        assert!((ratio - 40.0 / 48.0).abs() < 0.01, "{ratio}");
+    }
+}
+
 #[test]
 fn threaded_area_type_flows_through_its_frames() {
     let frames = [
