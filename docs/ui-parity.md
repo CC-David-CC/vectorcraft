@@ -1,6 +1,6 @@
 # UI and interaction parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Draw Inside marks the corners of the object it draws into (#4319); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-30 · **Change:** minor (Contextual task bar: stays up through a click on another object, hides only for a drag (#4681); scores unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 ## Feature submission evidence
 
@@ -366,6 +366,7 @@ separate. Scores and hours unchanged. [Behavior and command details](development
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-30 | minor | Contextual task bar: stays up through a click on another object, hides only for a drag (#4681); scores and estimates unchanged |
 | 2026-10-30 | minor | Draw Inside marks the corners of the object it draws into (#4319); scores and estimates unchanged |
 | 2026-10-30 | minor | Smart Pen add-on (a VectorCraft addition): its tool, panel and Object › Plug-ins › Smart Pen; scores and estimates unchanged |
 | 2026-10-30 | minor | Path Precision Tools add-on (a VectorCraft addition): its tools, Anchor Inspector panel and Object › Plug-ins › Path Precision Tools; scores and estimates unchanged |

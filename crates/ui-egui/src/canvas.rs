@@ -329,7 +329,10 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
     // The task bar is not drawn while the Simplify or Smooth slider shows.
     let strip = crate::dialogs::simplify_slider::showing(app) || crate::dialogs::smooth_slider::showing(app);
-    if app.ui.task_bar && !revolve_edit && !app.session.tool_busy() && app.ui.screen_mode < 3 && !strip {
+    // It gives way to a drag, not to a click: hidden for the length of every press, it flashed as
+    // each click picked another object (#4681).
+    let dragging = app.session.tool_busy() && ui.input(|i| i.pointer.is_decidedly_dragging());
+    if app.ui.task_bar && !revolve_edit && !dragging && app.ui.screen_mode < 3 && !strip {
         task_bar(app, ui, &xf);
     }
     if app.ui.screen_mode < 3 {
