@@ -5020,7 +5020,11 @@ spaceBefore, spaceAfter, hyphenate, mojikumi, burasagari, direction, leadingMode
 touches (a caret, `start == end`, touches its paragraph). Without a range they change every paragraph of the
 targeted objects, as before. With a range, the character attributes of `text.setStyle` and `text.setFormat` style
 that range of characters. `text.tabs.get {start?}` and `paraStyle.new` / `paraStyle.redefine {id, start?}` read the
-paragraph at `start`; `paraStyle.list` counts paragraphs as uses. A Return the Type tool types (or `text.editRange`
+paragraph at `start`; `paraStyle.list` counts paragraphs as uses, and `charStyle.list` counts runs; both count the type in
+the layers, opacity masks, symbols, graph designs, pattern tiles and the art of brushes. `charStyle.unused` and
+`paraStyle.unused` (Select All Unused in the Character Styles and Paragraph Styles panel menus) list the styles with no
+uses, in panel order and never the Normal style, and the panel highlights them; `charStyle.delete` and
+`paraStyle.delete` take `{names}` to delete several styles in one undo step. A Return the Type tool types (or `text.editRange`
 inserting `\n`) continues the style of the paragraph it splits; deleting a break keeps the first paragraph's style;
 `text.setText` gives every paragraph the first one's attributes. Threaded text keeps each paragraph's attributes as
 the story re-flows (a paragraph split between frames has them in both).
