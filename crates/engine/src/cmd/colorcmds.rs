@@ -335,6 +335,12 @@ pub(crate) fn recolor(s: &mut Session, p: &Value, label: &str, f: &dyn Fn(Color)
     run_pass(s, p, label, Recolor::new(Scope::of(p), f))
 }
 
+/// [`recolor`] with solid colours and gradient stops mapped through `links`, with their swatch
+/// link and tint.
+pub(crate) fn recolor_links(s: &mut Session, p: &Value, label: &str, f: &dyn Fn(Color) -> Color, links: &LinkMap) -> Result<Value> {
+    run_pass(s, p, label, Recolor::with_links(Scope::of(p), f, links))
+}
+
 /// Run `pass` on the `ids` param's objects (default: the selection) as one undo step.
 fn run_pass(s: &mut Session, p: &Value, label: &str, pass: Recolor) -> Result<Value> {
     let ids = match ids_param(p, "ids") {

@@ -5764,3 +5764,26 @@ anchor	Points:	Titik:
 
 # Color Effects add-on: Vector Halftone (Effect › Color Effects).
 	Dot Color from Art	Warna titik dari karya seni
+
+# Color Effects add-on: Duotone (Effect › Color Effects) and Print Ink Fixes (Object › Plug-ins › Color Effects).
+	Duotone…	Duotone…
+	Duotone	Duotone
+	Print Ink Fixes…	Perbaikan Tinta Cetak…
+	Print Ink Fixes	Perbaikan Tinta Cetak
+	Inks	Tinta
+	Tone 1	Nada 1
+	Tone 2	Nada 2
+	Tone 3	Nada 3
+	Tone 4	Nada 4
+	Curve	Kurva
+	Reset to Linear	Atur ulang ke linear
+	Reset to Inverse	Atur ulang ke terbalik
+	Skip Objects with Spot Colors	Lewati objek dengan warna spot
+	Ink Limit	Batas tinta
+	Exclude Pure Black	Kecualikan hitam murni
+	Remove White Overprint	Hapus overprint putih
+	Overprint Black	Overprint hitam
+	Text Only	Hanya teks
+@msg	give `inkLimit`, `removeWhiteOverprint` or `overprintBlack`	berikan `inkLimit`, `removeWhiteOverprint`, atau `overprintBlack`
+@msg	Print Ink Fixes works on CMYK documents: choose File › Document Color Mode › CMYK Color first	Perbaikan Tinta Cetak bekerja pada dokumen CMYK: pilih dulu Berkas › Mode warna dokumen › Warna CMYK
+@msg	`{key}` must be 0..{max}	`{key}` harus 0..{max}
