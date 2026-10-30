@@ -130,9 +130,13 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
             }
         });
         set_pstate(ui.ctx(), COUNT, Some(count));
-        widgets::label_row(ui, tl!("Close Path:"), LABEL_W + 16.0, |ui| {
+        // The label above and the three ways sharing the row: beside the label they overflow a narrow dock.
+        widgets::subheader(ui, "Close Path:");
+        ui.horizontal(|ui| {
+            let n = CLOSE_MODES.len() as f32;
+            let each = ((width - ui.spacing().item_spacing.x * (n - 1.0)) / n).max(40.0);
             for (mode, label) in CLOSE_MODES {
-                if widgets::flat_button_fit(ui, tl!(label), 40.0).clicked() {
+                if widgets::flat_button(ui, tl!(label), each).clicked() {
                     action = Some(("addon.pathtools.close", json!({ "mode": mode })));
                 }
             }
