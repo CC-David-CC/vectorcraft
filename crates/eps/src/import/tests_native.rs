@@ -1628,3 +1628,54 @@ fn a_placed_file_at_its_boxs_corner_matches_the_page() {
     let b = image.geometric_bounds().unwrap();
     assert!([b.x0 - 30.0, b.y0 - 30.0, b.x1 - 70.0, b.y1 - 70.0].iter().all(|v| v.abs() < 0.01), "on the page's square: {b:?}");
 }
+
+#[test]
+fn text_a_placed_file_covers_only_at_its_first_placement_is_kept() {
+    const OPAQUE: &str = "<opaque>";
+    // An opaque black 2 × 2 preview of a file whose box corner the matrix takes to (30, 30)–(70,
+    // 70), as the page draws it. The template box's canvas point puts it 10 to the left instead,
+    // over the 8 pt text object "Hi" at (21, 48): there the text can't be seen, and the page has
+    // no type for it (it draws it as outlines), so the text looks like type the app doesn't draw.
+    // The layers then differ from the page by little more than `compare` allows, so that is
+    // weighed. With the file at its box's corner the text shows, as the page has it.
+    let place = format!(
+        "%AI5_BeginPlace\n%%FileType: 1\n[1 0 0 -1 -7970 8070] 8000 8000 8040 8040 4 4 0\n(photo.png)`\n\
+         %AI26_BeginPlacedObjectPreview\n2 2 8 32 17 {}\n%AI26_EndPlacedObjectPreview\n~\n%AI5_EndPlace\n",
+        OPAQUE.repeat(4)
+    );
+    // Canvas centre 8191.5 is the template box's centre (201.5, -191.5): the anchor (8011, 7952) is
+    // (21, 48) in art space.
+    let document = text_document(&[("Hi\r", 0, (8011.0, 7952.0), (0.0, 0.0), 0.0)]).replace("/1 14.0", "/1 8.0");
+    let data = native_with_text(&layer("Art", true, &(text_object(0) + &place)), &document)
+        .replace("%AI3_TemplateBox: 50 50 50 50", "%AI3_TemplateBox: 201.5 -191.5 201.5 -191.5");
+    // The page (y down): the image's black square, and the type's outlines, a magenta box where
+    // its glyphs are.
+    let mut page = Document::new(100.0, 100.0);
+    let l = page.layers[0].id;
+    for (rect, color) in [
+        (vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0), vectorcraft_color::Color::BLACK),
+        (vectorcraft_geom::Rect::new(21.5, 46.5, 28.0, 52.0), vectorcraft_color::Color::Cmyk { c: 0.0, m: 1.0, y: 0.0, k: 0.0 }),
+    ] {
+        let id = page.alloc_id();
+        let fill = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(color));
+        let n = Node::path(
+            id,
+            vectorcraft_geom::shapes::rectangle(rect),
+            vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(fill)], ..Default::default() },
+        );
+        page.insert(Some(l), 0, n).unwrap();
+    }
+    // The preview's pixels are opaque black (ARGB `ff 00 00 00`), bytes a `str` can't hold.
+    let bytes =
+        data.replace(OPAQUE, "\u{1}").into_bytes().into_iter().flat_map(|b| if b == 1 { vec![0xff, 0, 0, 0] } else { vec![b] }).collect::<Vec<u8>>();
+    let private =
+        [b"%AI24_ZStandard_Data".as_slice(), &ruzstd::encoding::compress_to_vec(&bytes[..], ruzstd::encoding::CompressionLevel::Fastest)].concat();
+    let (d, w, read) = crate::layered_ai(&private, page, vec![], false, false, 1.0);
+    assert!(read, "{w:?}");
+    let art = d.layers[0].children().unwrap();
+    let image = art.iter().find(|n| matches!(n.kind, NodeKind::Image(_))).expect("the image");
+    let b = image.geometric_bounds().unwrap();
+    assert!([b.x0 - 30.0, b.y0 - 30.0, b.x1 - 70.0, b.y1 - 70.0].iter().all(|v| v.abs() < 0.01), "on the page's square: {b:?}");
+    assert_eq!(text_of(&d.layers[0]).iter().map(|t| t.plain_text()).collect::<Vec<_>>(), ["Hi"], "{w:?}");
+    assert!(!w.iter().any(|w| w.contains("doesn't draw")), "{w:?}");
+}

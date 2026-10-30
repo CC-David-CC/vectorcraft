@@ -219,19 +219,26 @@ pub(super) fn build_from(
         Some(frame) => {
             let mut view = PageView::new(&frame);
             view.restyled(&restyled, frame.rect);
+            // The placed files' other placement starts from the layers as read: which text the page
+            // doesn't draw is weighed again with the images there, since an image that covered a
+            // text object at the first placement may not cover it at the other.
+            let other = elsewhere(&doc, &placed_elsewhere);
             let unseen = prune_unseen(&frame, &mut view, &mut doc);
-            if unseen > 0 {
-                notes.push(format!("{unseen} {UNSEEN_TEXT}"));
-            }
+            let unseen_note = |n: usize| (n > 0).then(|| format!("{n} {UNSEEN_TEXT}"));
             match compare(&frame, &mut view, &doc) {
-                Ok(note) => notes.extend(note),
+                Ok(note) => notes.extend(unseen_note(unseen).into_iter().chain(note)),
                 // Placed files at the other point their data gives, where that draws as the page.
-                Err(why) => match elsewhere(&doc, &placed_elsewhere).map(|other| (compare(&frame, &mut view, &other), other)) {
-                    Some((Ok(note), other)) => {
+                Err(why) => match other.map(|mut other| {
+                    let unseen = prune_unseen(&frame, &mut view, &mut other);
+                    (compare(&frame, &mut view, &other), other, unseen)
+                }) {
+                    Some((Ok(note), other, unseen)) => {
                         doc = other;
-                        notes.extend(note);
+                        notes.extend(unseen_note(unseen).into_iter().chain(note));
                     }
-                    _ if trust => notes.push(format!("{why}: they come from its editing data all the same")),
+                    _ if trust => {
+                        notes.extend(unseen_note(unseen).into_iter().chain([format!("{why}: they come from its editing data all the same")]))
+                    }
                     _ => return Err(why),
                 },
             }
