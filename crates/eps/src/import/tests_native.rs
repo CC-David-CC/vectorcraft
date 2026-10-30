@@ -1729,6 +1729,31 @@ fn a_placed_file_at_its_boxs_corner_matches_the_page() {
 }
 
 #[test]
+fn a_small_placed_file_goes_where_it_draws_closer_to_the_page() {
+    // A 2 × 2 placed file (a small logo on a large page) whose box corner the matrix takes to
+    // (30, 30)–(32, 32), as the page draws it. The template box's canvas point puts it at
+    // (10, 10)–(12, 12): on the page too, and small enough that the layers pass the comparison
+    // there all the same.
+    let place = format!(
+        "%AI5_BeginPlace\n%%FileType: 1\n[1 0 0 -1 -7970 8070] 8000 8000 8002 8002 4 4 0\n(logo.png)`\n\
+         %AI26_BeginPlacedObjectPreview\n2 2 8 32 17 {}\n%AI26_EndPlacedObjectPreview\n~\n%AI5_EndPlace\n",
+        "\x7f\0\0\0".repeat(4)
+    );
+    let data = native(&layer("Jig", true, &place)).replace("%AI5_NumLayers", "%AI3_TemplateBox: 211.5 -211.5 211.5 -211.5\n%AI5_NumLayers");
+    let mut page = Document::new(100.0, 100.0);
+    let id = page.alloc_id();
+    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 32.0, 32.0));
+    let grey = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
+    let n = Node::path(id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(grey)], ..Default::default() });
+    let l = page.layers[0].id;
+    page.insert(Some(l), 0, n).unwrap();
+    let (d, w, read) = crate::layered_ai(&private(&data), page, vec![], false, false, 1.0);
+    assert!(read, "{w:?}");
+    let b = d.layers[0].children().unwrap()[0].geometric_bounds().unwrap();
+    assert!([b.x0 - 30.0, b.y0 - 30.0, b.x1 - 32.0, b.y1 - 32.0].iter().all(|v| v.abs() < 0.01), "on the page's square: {b:?}");
+}
+
+#[test]
 fn text_a_placed_file_covers_only_at_its_first_placement_is_kept() {
     const OPAQUE: &str = "<opaque>";
     // An opaque black 2 × 2 preview of a file whose box corner the matrix takes to (30, 30)–(70,
