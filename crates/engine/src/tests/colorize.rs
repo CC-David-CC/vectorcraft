@@ -55,6 +55,84 @@ fn colorize(s: &Session, id: NodeId) -> Option<Paint> {
 }
 
 #[test]
+fn colorized_gray_image_is_flattened_for_pdf_13() {
+    let mut s = session();
+    let id = image(&mut s, "gray", gray(false));
+    assert!(!s.doc().unwrap().doc.layers[0].shows_transparency());
+    let plain = s.execute("document.exportPdf", &json!({"compatibility": "1.3"})).unwrap();
+    assert!(
+        plain["warnings"].as_array().unwrap().iter().all(|w| !w.as_str().unwrap().contains("transparency is flattened")),
+        "{}",
+        plain["warnings"]
+    );
+
+    s.execute("paint.setFill", &json!({"color": "#ff0000", "ids": [id.0]})).unwrap();
+    assert!(s.doc().unwrap().doc.layers[0].shows_transparency());
+    let tinted = s.execute("document.exportPdf", &json!({"compatibility": "1.3"})).unwrap();
+    assert!(
+        tinted["warnings"].as_array().unwrap().iter().any(|w| w.as_str().unwrap().contains("transparency is flattened")),
+        "{}",
+        tinted["warnings"]
+    );
+    let bytes = vectorcraft_format::base64_decode(tinted["dataBase64"].as_str().unwrap()).unwrap();
+    assert!(!String::from_utf8_lossy(&bytes).contains("/SMask"), "PDF 1.3 has no soft mask");
+}
+
+#[test]
+fn colorized_gray_image_is_flattened_for_pdf_x_1a() {
+    let mut s = session();
+    let id = image(&mut s, "gray", gray(false));
+    s.execute("paint.setFill", &json!({"color": "#ff0000", "ids": [id.0]})).unwrap();
+    let out = s.execute("document.exportPdf", &json!({"standard": "pdfX1a"})).unwrap();
+    assert!(out["warnings"].as_array().unwrap().iter().any(|w| w.as_str().unwrap().contains("transparency is flattened")), "{}", out["warnings"]);
+    let bytes = vectorcraft_format::base64_decode(out["dataBase64"].as_str().unwrap()).unwrap();
+    assert!(!String::from_utf8_lossy(&bytes).contains("/SMask"), "PDF/X-1a has no soft mask");
+}
+
+#[test]
+fn colorized_gray_image_is_omitted_from_legacy_ai_when_requested() {
+    let mut s = session();
+    let id = image(&mut s, "gray", gray(false));
+    s.execute("paint.setFill", &json!({"color": "#ff0000", "ids": [id.0]})).unwrap();
+    let out = s.execute("file.saveCopy", &json!({"format": "ai", "aiVersion": "7", "transparentImages": "omit"})).unwrap();
+    assert!(out["warnings"].as_array().unwrap().iter().any(|w| w.as_str().unwrap().contains("are left out")), "{}", out["warnings"]);
+}
+
+#[test]
+fn flattened_colorized_image_shows_the_art_under_white_pixels() {
+    let mut s = session();
+    let background = s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 40, "height": 20})).unwrap()["id"].as_u64().unwrap();
+    s.execute("paint.setFill", &json!({"color": "#0000ff", "ids": [background]})).unwrap();
+    s.execute("paint.setStroke", &json!({"none": true, "ids": [background]})).unwrap();
+    let id = image(&mut s, "gray", gray(false));
+    s.edit("Scale image", |d, _| {
+        if let NodeKind::Image(im) = &mut d.node_mut(id).unwrap().kind {
+            im.xf = vectorcraft_geom::Affine::scale(20.0);
+        }
+        Ok(())
+    })
+    .unwrap();
+    s.execute("paint.setFill", &json!({"color": "#ff0000", "ids": [id.0]})).unwrap();
+    s.execute("object.arrange.bringToFront", &json!({"ids": [id.0]})).unwrap();
+    let doc = &s.doc().unwrap().doc;
+    let mut options = crate::cmd::flatten::FlattenOptions::preset("low").unwrap();
+    options.no_transparency = Some(Default::default());
+    options.clip_complex_regions = true;
+    let flat = crate::cmd::flatten::flatten_document(doc, &options).unwrap().unwrap();
+    let region = vectorcraft_geom::Rect::new(0.0, 0.0, 40.0, 20.0);
+    let before = vectorcraft_render::Renderer::new().render_region(doc, region, 1.0, true);
+    let after = vectorcraft_render::Renderer::new().render_region(&flat, region, 1.0, true);
+    for (x, expected) in [(10, [255, 0, 0]), (30, [0, 0, 255])] {
+        let a = before.pixel(x, 10);
+        let b = after.pixel(x, 10);
+        for channel in 0..3 {
+            assert!((i16::from(a[channel]) - i16::from(b[channel])).abs() <= 10, "x={x}: {a:?} became {b:?}");
+            assert!((i16::from(b[channel]) - expected[channel]).abs() <= 10, "x={x}: {b:?}");
+        }
+    }
+}
+
+#[test]
 fn a_fill_color_colorizes_a_gray_image_and_none_takes_it_off() {
     let mut s = session();
     let id = image(&mut s, "gray", gray(false));
