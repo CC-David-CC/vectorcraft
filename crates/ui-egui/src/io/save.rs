@@ -249,6 +249,9 @@ pub(crate) fn save_current(app: &mut VectorcraftApp, p: &Value) -> Result<Value,
 
 /// The same entry with a resolved Documents folder (also permits deterministic host-free tests).
 pub(super) fn save_current_in(app: &mut VectorcraftApp, p: &Value, folder: Option<String>) -> Result<Value, String> {
+    if app.services.account_dispatch.is_some() {
+        return app.account_save_command(false);
+    }
     remember_view(app);
     let first = plan(app, SaveMode::Save, &acknowledged(p))?;
     let own = !app.automation_asked()
@@ -291,6 +294,9 @@ pub(super) fn save_suggesting(
     ask_options: bool,
     suggestion: Option<&FilePick>,
 ) -> Result<Value, String> {
+    if app.services.account_dispatch.is_some() && matches!(mode, SaveMode::Save | SaveMode::SaveAs) {
+        return app.account_save_command(mode == SaveMode::SaveAs);
+    }
     remember_view(app);
     // Writing over the file the document was read from is asked about here, not refused.
     let first = plan(app, mode, &acknowledged(p))?;

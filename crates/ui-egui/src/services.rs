@@ -86,6 +86,8 @@ pub type OpenInFn = Box<dyn FnMut(&str) -> Result<bool, String>>;
 /// Platform services injected by the host app (desktop or web).
 #[derive(Default)]
 pub struct Services {
+    /// In an account window, route document intents to Desktop and its Storage capability.
+    pub account_dispatch: Option<crate::account_host::AccountDispatch>,
     /// Show an open dialog; returns a path.
     pub pick_open: Option<PickOpen>,
     /// Show a save dialog (suggested name, folder, file types); returns a path.

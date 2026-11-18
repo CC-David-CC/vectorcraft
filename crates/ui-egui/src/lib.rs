@@ -111,6 +111,7 @@ pub use control::{ControlRequest, ControlResponse, Ticket as ControlTicket};
 pub use state::{UiState, View};
 pub use sysclip::{CLIPBOARD_PROBE_STOP_WAIT, ClipboardProbeFactory, ClipboardRead, MakeFlavour, SystemClipboard};
 
+pub mod account_host;
 mod app;
 mod caches;
 mod clock;
@@ -131,6 +132,7 @@ pub(crate) use state::{InputFrame, take_frame_once};
 
 pub struct VectorcraftApp {
     pub session: Session,
+    pub(crate) account_host: account_host::AccountHost,
     pub ui: UiState,
     pub views: Vec<View>,
     /// The document ([`vectorcraft_engine::DocState::uid`]) each of `views` belonged to at the last

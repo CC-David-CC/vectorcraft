@@ -60,6 +60,7 @@ impl VectorcraftApp {
         let known = session.documents().iter().map(|d| d.uid).collect();
         Self {
             session,
+            account_host: Default::default(),
             ui: UiState::default(),
             views,
             view_uids,

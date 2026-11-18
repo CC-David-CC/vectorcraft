@@ -337,6 +337,9 @@ fn open_dialog_folder(app: &VectorcraftApp) -> Option<String> {
 
 /// File → Open…
 pub fn open_dialog(app: &mut VectorcraftApp) -> Result<(), String> {
+    if app.services.account_dispatch.is_some() {
+        return app.open_account_picker(None);
+    }
     if crate::picks::open_async(app) {
         return Ok(());
     }
@@ -454,6 +457,9 @@ pub fn report_open_error(app: &mut VectorcraftApp, name: &str, e: &str) {
 /// `{background: true, status}`, and the document opens in its tab (or the failure is reported)
 /// once it is ready.
 pub fn open_reporting(app: &mut VectorcraftApp, path: &str) -> Result<Value, String> {
+    if app.services.account_dispatch.is_some() {
+        return app.open_account_picker(Some(path)).map(|()| Value::Null);
+    }
     let r = open_file(app, path, crate::opening::available());
     if let Err(e) = &r {
         report_open_error(app, &fileio::file_name(path), e);

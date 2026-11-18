@@ -20,6 +20,7 @@ use vectorcraft_ui_egui::stylus::StylusFeed;
 use vectorcraft_ui_egui::{PickedInbox, Services, VectorcraftApp};
 use wasm_bindgen::JsCast as _;
 
+use crate::account::Account;
 use crate::locks::WebLocks;
 use crate::pencil::SharedPointers;
 
@@ -60,6 +61,8 @@ const MAX_RESTARTS: u32 = 3;
 #[derive(Clone)]
 struct Host {
     runner: eframe::WebRunner,
+    account: Option<Rc<RefCell<Account>>>,
+    account_reads: Rc<Cell<usize>>,
     inbox: OpenInboxes,
     place_inbox: PlaceInbox,
     script_inbox: ScriptInbox,
@@ -74,6 +77,14 @@ struct Host {
     restarts: u32,
 }
 
+impl Host {
+    fn account_input_pending(&self) -> bool {
+        self.account_reads.get() != 0
+            || self.pasted.borrow().flavour.is_some()
+            || !self.place_inbox.lock().unwrap_or_else(|error| error.into_inner()).is_empty()
+    }
+}
+
 pub fn start() {
     eframe::WebLogger::init(log::LevelFilter::Info).ok();
     let Some(canvas) = element(CANVAS_ID).and_then(|e| e.dyn_into::<web_sys::HtmlCanvasElement>().ok()) else {
@@ -82,13 +93,28 @@ pub fn start() {
     };
     detect_language();
     wasm_bindgen_futures::spawn_local(async move {
+        let params = web_sys::UrlSearchParams::new_with_str(&query()).ok();
+        let account = if params.as_ref().and_then(|params| params.get("host")).as_deref() == Some("webos-account") {
+            let profile = params.as_ref().and_then(|params| params.get("profile")).unwrap_or_default();
+            match Account::connect(&profile) {
+                Ok(account) => Some(Rc::new(RefCell::new(account))),
+                Err(error) => {
+                    notice(&[&error]);
+                    return;
+                }
+            }
+        } else {
+            None
+        };
         // Before the first frame, which looks for copies a crash left behind.
-        let locks = WebLocks::start(RECOVERY_PREFIX).await;
+        let locks = if account.is_none() { WebLocks::start(RECOVERY_PREFIX).await } else { None };
         // Fallback fonts the first frame needs (Noto Sans Arabic), fetched while the loading text
         // shows; the rest load in the background once the app runs.
         crate::fonts::load_startup_fonts().await;
         let host = Host {
             runner: eframe::WebRunner::new(),
+            account,
+            account_reads: Rc::default(),
             inbox: OpenInboxes::default(),
             place_inbox: Arc::default(),
             script_inbox: Arc::default(),
@@ -98,7 +124,7 @@ pub fn start() {
             locks,
             restarts: 0,
         };
-        track_paste(&host.pasted);
+        track_paste(&host.pasted, host.account.as_ref().map(|_| host.account_reads.clone()));
         crate::keys::keep_app_keys();
         run(host, canvas, None).await;
     });
@@ -119,6 +145,7 @@ async fn run(host: Host, canvas: web_sys::HtmlCanvasElement, moving: Option<Movi
     // The app until the new runner takes it (still here if starting fails before).
     let slot = Rc::new(RefCell::new(moving.map(|m| m.app)));
     let (runner, taken, page) = (host.runner.clone(), slot.clone(), canvas.clone());
+    let account_after_start = host.account.clone();
     let (pointers, pen_canvas) = (host.pointers.clone(), canvas.clone());
     let result = runner
         .start(
@@ -137,14 +164,46 @@ async fn run(host: Host, canvas: web_sys::HtmlCanvasElement, moving: Option<Movi
                 }
                 host.pasted.borrow_mut().ctx = Some(ctx.clone());
                 let stylus = host.pointers.borrow().stylus();
-                let services =
-                    services(host.inbox.clone(), host.place_inbox.clone(), host.script_inbox.clone(), ctx.clone(), host.locks.clone(), stylus);
+                let mut services = services(
+                    host.inbox.clone(),
+                    host.place_inbox.clone(),
+                    host.script_inbox.clone(),
+                    ctx.clone(),
+                    host.locks.clone(),
+                    stylus,
+                    host.account.as_ref().map(|_| host.account_reads.clone()),
+                );
+                if let Some(account) = &host.account {
+                    // Standalone framework memory, drafts and file/automation inboxes do not belong to an account.
+                    ctx.memory_mut(|memory| *memory = Default::default());
+                    services.recovery_store = None;
+                    services.account_dispatch = Some(account.borrow().bind(ctx));
+                    services.inbox = None;
+                    services.page_inbox = None;
+                    services.open_async = None;
+                    services.picked_inbox = None;
+                    services.script_async = None;
+                    services.script_inbox = None;
+                }
                 let app = match taken.borrow_mut().take() {
                     Some(mut app) => {
                         // The old services asked the old context for frames.
                         app.services = services;
                         app.status("The graphics were lost and have been restarted");
-                        crate::api::connect(None, host.inbox.page.clone(), ctx.clone());
+                        if host.account.is_none() {
+                            crate::api::connect(None, host.inbox.page.clone(), ctx.clone());
+                        }
+                        app
+                    }
+                    None if host.account.is_some() => {
+                        let mut session = Session::new();
+                        if let Some(account) = &host.account {
+                            account.borrow().load_prefs(&mut session);
+                        }
+                        let mut app = VectorcraftApp::new(session, services);
+                        if let Some(account) = &host.account {
+                            account.borrow_mut().load_recent(&mut app);
+                        }
                         app
                     }
                     None => {
@@ -168,6 +227,12 @@ async fn run(host: Host, canvas: web_sys::HtmlCanvasElement, moving: Option<Movi
             }
             if let Some(el) = element(LOADING_ID) {
                 el.remove();
+            }
+            if kept.is_none()
+                && let Some(account) = account_after_start
+                && let Err(error) = account.borrow().ready()
+            {
+                notice(&[&error]);
             }
         }
         (Err(e), None) => notice(&[&format!("VectorCraft failed to start: {}", js_err(e)), "A browser with WebGPU or WebGL2 is required."]),
@@ -237,7 +302,7 @@ fn track_drag(canvas: &web_sys::HtmlCanvasElement, pos: &DragPos) {
 /// Take pictures and files pasted into the page (egui reads a paste's text only): a paste without
 /// text hands the first of its files that is art (a bitmap, SVG, PDF, a metafile) to the next
 /// frame. Text, SVG markup among it, is left to egui.
-fn track_paste(pasted: &Rc<RefCell<Pasted>>) {
+fn track_paste(pasted: &Rc<RefCell<Pasted>>, account_reads: Option<Rc<Cell<usize>>>) {
     let Some(window) = web_sys::window() else { return };
     let pasted = pasted.clone();
     let on_paste = wasm_bindgen::closure::Closure::<dyn FnMut(web_sys::ClipboardEvent)>::new(move |e: web_sys::ClipboardEvent| {
@@ -251,8 +316,10 @@ fn track_paste(pasted: &Rc<RefCell<Pasted>>) {
         e.prevent_default();
         let held = pasted.borrow().ctx.as_ref().map(|c| c.input(|i| i.modifiers)).unwrap_or_default();
         let files: Vec<web_sys::File> = (0..files.length()).filter_map(|i| files.get(i)).collect();
+        let read = account_reads.as_ref().and_then(|count| pasted.borrow().ctx.clone().map(|ctx| AccountRead::start(count.clone(), ctx)));
         let pasted = pasted.clone();
         wasm_bindgen_futures::spawn_local(async move {
+            let _read = read;
             for file in files {
                 let bytes = match wasm_bindgen_futures::JsFuture::from(file.array_buffer()).await {
                     Ok(buf) => js_sys::Uint8Array::new(&buf).to_vec(),
@@ -382,18 +449,43 @@ impl WebShell {
 }
 
 impl eframe::App for WebShell {
+    fn persist_egui_memory(&self) -> bool {
+        self.host.account.is_none()
+    }
+
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some(why) = self.loss.take() {
             self.restart(&why);
         }
         let Some(app) = &mut self.app else { return };
+        if let Some(account) = &self.host.account {
+            let mut account = account.borrow_mut();
+            app.account_input_pending(self.host.account_input_pending());
+            account.process(app);
+            if account.paused() {
+                return;
+            }
+        }
         app.tick(ctx);
         app.finish_ime_logic(ctx);
+        if let Some(account) = &self.host.account {
+            let mut account = account.borrow_mut();
+            account.save_prefs(app);
+            if let Err(error) = account.publish(app) {
+                log::warn!("Could not report VectorCraft account state: {error}");
+            }
+        }
     }
 
     /// Forward host-gathered pointer events into this frame's raw input, then let the app apply its
     /// shared input hook before egui runs.
     fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
+        if self.host.account.as_ref().is_some_and(|account| account.borrow().paused()) {
+            self.host.pointers.borrow_mut().take();
+            raw.events.clear();
+            raw.dropped_files.clear();
+            return;
+        }
         raw.events.extend(self.host.pointers.borrow_mut().take());
         // A Cmd+V comes as its key and as a Paste: one paste (#5555).
         crate::keys::drop_paste_key_presses(&mut raw.events);
@@ -405,6 +497,9 @@ impl eframe::App for WebShell {
     /// Read host paste and drop input once in the UI phase, hand files to the app's drop targets, run
     /// the app UI, then poll control replies.
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        if self.host.account.as_ref().is_some_and(|account| account.borrow().paused()) {
+            return;
+        }
         let ctx = ui.ctx().clone();
         if let Some(app) = &mut self.app {
             // DOM paste and drop are host input: read them in the UI phase, once per pass, not in
@@ -421,8 +516,14 @@ impl eframe::App for WebShell {
                 for f in dropped {
                     let name = f.path().file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "dropped".into());
                     let target = app.drop_target(&name, pos, shift);
+                    if self.host.account.is_some() && matches!(target, DropTarget::Open) {
+                        app.status("Use account Files to open a project in its own window.");
+                        continue;
+                    }
                     let (inbox, place_inbox, repaint) = (self.host.inbox.dropped.clone(), self.host.place_inbox.clone(), ctx.clone());
+                    let read = self.host.account.as_ref().map(|_| AccountRead::start(self.host.account_reads.clone(), ctx.clone()));
                     wasm_bindgen_futures::spawn_local(async move {
+                        let _read = read;
                         match f.bytes_async().await {
                             Ok(bytes) => {
                                 match target {
@@ -439,7 +540,33 @@ impl eframe::App for WebShell {
                 }
             }
             app.ui(ui);
+            if let Some(account) = &self.host.account {
+                app.account_input_pending(self.host.account_input_pending());
+                if let Err(error) = account.borrow_mut().publish(app) {
+                    log::warn!("Could not report VectorCraft account state: {error}");
+                }
+            }
         }
+    }
+}
+
+/// Keeps an account window busy while its accepted file input is still being read.
+struct AccountRead {
+    count: Rc<Cell<usize>>,
+    ctx: egui::Context,
+}
+
+impl AccountRead {
+    fn start(count: Rc<Cell<usize>>, ctx: egui::Context) -> Self {
+        count.set(count.get().saturating_add(1));
+        Self { count, ctx }
+    }
+}
+
+impl Drop for AccountRead {
+    fn drop(&mut self) {
+        self.count.set(self.count.get().saturating_sub(1));
+        self.ctx.request_repaint();
     }
 }
 
@@ -450,6 +577,7 @@ fn services(
     ctx: egui::Context,
     locks: Option<WebLocks>,
     stylus: StylusFeed,
+    account_reads: Option<Rc<Cell<usize>>>,
 ) -> Services {
     let open_inbox = inbox.picked.clone();
     let picked = place_inbox.clone();
@@ -476,7 +604,9 @@ fn services(
         place_async: Some(Box::new(move || {
             let inbox = picked.clone();
             let ctx = place_ctx.clone();
+            let read = account_reads.as_ref().map(|count| AccountRead::start(count.clone(), ctx.clone()));
             wasm_bindgen_futures::spawn_local(async move {
+                let _read = read;
                 let dialog =
                     fileio::place_filters().fold(rfd::AsyncFileDialog::new().set_title(vectorcraft_ui_egui::i18n::t("Place")), |d, (name, exts)| {
                         d.add_filter(vectorcraft_ui_egui::i18n::tr_ctx(vectorcraft_ui_egui::i18n::current(), "file-filter", name), exts)
@@ -571,11 +701,11 @@ struct BrowserStore {
 
 const RECOVERY_PREFIX: &str = "vectorcraft-recovery/";
 
-fn js_err(e: wasm_bindgen::JsValue) -> String {
+pub(crate) fn js_err(e: wasm_bindgen::JsValue) -> String {
     format!("{e:?}")
 }
 
-fn local_storage() -> Result<web_sys::Storage, String> {
+pub(crate) fn local_storage() -> Result<web_sys::Storage, String> {
     web_sys::window().ok_or("no window")?.local_storage().map_err(js_err)?.ok_or_else(|| "browser storage is turned off".into())
 }
 
