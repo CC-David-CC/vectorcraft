@@ -338,6 +338,152 @@ fn a_plot_of_the_arts_bounds_leaves_out_images_in_dynamic_symbol_art() {
     assert!(e.contains("no visible art"), "{e}");
 }
 
+/// A rectangle filled black, or one that paints nothing.
+fn plot_rect(d: &mut vectorcraft_doc::Document, r: vectorcraft_geom::Rect, painted: bool) -> std::sync::Arc<vectorcraft_doc::Node> {
+    use vectorcraft_color::{Color, Paint};
+    let fill = if painted { Paint::solid(Color::BLACK) } else { Paint::None };
+    let appearance = vectorcraft_doc::Appearance::basic(fill, Paint::None, 0.0);
+    std::sync::Arc::new(vectorcraft_doc::Node::path(d.alloc_id(), vectorcraft_geom::shapes::rectangle(r), appearance))
+}
+
+/// An instance of symbol `symbol` placed by `xf`.
+fn plot_instance(d: &mut vectorcraft_doc::Document, symbol: &str, xf: vectorcraft_geom::Affine) -> vectorcraft_doc::Node {
+    vectorcraft_doc::Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: symbol.into(), xf })
+}
+
+/// Symbol `name` holding `art` in a group.
+fn plot_symbol(d: &mut vectorcraft_doc::Document, name: &str, art: Vec<std::sync::Arc<vectorcraft_doc::Node>>, dynamic: bool) {
+    let group = vectorcraft_doc::Node::group(d.alloc_id(), art);
+    d.symbols.push(vectorcraft_doc::Symbol { dynamic, name: name.into(), art: std::sync::Arc::new(group) });
+}
+
+/// Puts `n` on the first layer of `d`.
+fn plot_on_layer(d: &mut vectorcraft_doc::Document, n: vectorcraft_doc::Node) {
+    std::sync::Arc::make_mut(&mut d.layers[0]).children_mut().unwrap().push(std::sync::Arc::new(n));
+}
+
+/// The art of a symbol with 9-slice guides, static or dynamic, is placed whole and measured
+/// without what the plot leaves out: a frame that paints nothing sets where the guides place the
+/// painted art inside it, and is not measured itself.
+#[test]
+fn a_plot_of_the_arts_bounds_places_9_slice_symbol_art_by_all_of_it() {
+    use vectorcraft_geom::{Affine, Rect};
+    // Static and dynamic, and with the instance's fill staining the art.
+    for (dynamic, stained) in [(false, false), (true, false), (false, true)] {
+        let mut d = vectorcraft_doc::Document::new(400.0, 400.0);
+        let frame = plot_rect(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), false);
+        let square = plot_rect(&mut d, Rect::new(40.0, 40.0, 60.0, 60.0), true);
+        plot_symbol(&mut d, "Panel", vec![frame, square], dynamic);
+        d.set_symbol_nine_slice("Panel", Some(vectorcraft_doc::SymbolNineSlice::default()));
+        let mut wide = plot_instance(&mut d, "Panel", Affine::scale_non_uniform(2.0, 1.0));
+        if stained {
+            let red = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0));
+            wide.appearance = vectorcraft_doc::Appearance::basic(red, vectorcraft_color::Paint::None, 0.0).into();
+        }
+        plot_on_layer(&mut d, wide);
+        // Scaled 2 times across, the middle column maps x to 3x - 50: the square draws from x 70
+        // to 130.
+        let b = super::export_art_bounds(&d, "hpgl").unwrap();
+        let exact = [(b.x0, 70.0), (b.y0, 40.0), (b.x1, 130.0), (b.y1, 60.0)].iter().all(|(a, e)| (a - e).abs() < 1e-6);
+        assert!(exact, "dynamic: {dynamic}, stained: {stained}, {b:?}");
+    }
+}
+
+/// In art placed through 9-slice guides, a group with a fill of its own keeps the path it paints,
+/// which paints nothing by itself.
+#[test]
+fn a_plot_of_the_arts_bounds_keeps_what_a_group_paints_in_9_slice_symbol_art() {
+    use vectorcraft_geom::{Affine, Rect};
+    let mut d = vectorcraft_doc::Document::new(400.0, 400.0);
+    let frame = plot_rect(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), false);
+    let bare = plot_rect(&mut d, Rect::new(40.0, 40.0, 60.0, 60.0), false);
+    let mut group = vectorcraft_doc::Node::group(d.alloc_id(), vec![bare]);
+    let black = vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK);
+    group.appearance = vectorcraft_doc::Appearance::basic(black, vectorcraft_color::Paint::None, 0.0).into();
+    plot_symbol(&mut d, "Panel", vec![frame, std::sync::Arc::new(group)], false);
+    d.set_symbol_nine_slice("Panel", Some(vectorcraft_doc::SymbolNineSlice::default()));
+    let wide = plot_instance(&mut d, "Panel", Affine::scale_non_uniform(2.0, 1.0));
+    plot_on_layer(&mut d, wide);
+    let b = super::export_art_bounds(&d, "hpgl").expect("the group's path is plotted");
+    let exact = [(b.x0, 70.0), (b.y0, 40.0), (b.x1, 130.0), (b.y1, 60.0)].iter().all(|(a, e)| (a - e).abs() < 1e-6);
+    assert!(exact, "{b:?}");
+}
+
+/// A symbol without guides in the art of a symbol with 9-slice guides is measured without what the
+/// plot leaves out, in the placed art and in an instance of its own.
+#[test]
+fn a_plot_of_the_arts_bounds_leaves_out_unplotted_art_of_symbols_in_9_slice_art() {
+    use vectorcraft_geom::{Affine, Rect};
+    let mut d = vectorcraft_doc::Document::new(400.0, 400.0);
+    let far = plot_rect(&mut d, Rect::new(45.0, -500.0, 55.0, -480.0), false);
+    let dot = plot_rect(&mut d, Rect::new(45.0, 45.0, 55.0, 55.0), true);
+    plot_symbol(&mut d, "Dot", vec![far, dot], false);
+    let frame = plot_rect(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), false);
+    let inner = std::sync::Arc::new(plot_instance(&mut d, "Dot", Affine::IDENTITY));
+    plot_symbol(&mut d, "Panel", vec![frame, inner], false);
+    d.set_symbol_nine_slice("Panel", Some(vectorcraft_doc::SymbolNineSlice::default()));
+    let wide = plot_instance(&mut d, "Panel", Affine::scale_non_uniform(2.0, 1.0));
+    plot_on_layer(&mut d, wide);
+    let near = |b: Rect, e: [f64; 4]| [b.x0, b.y0, b.x1, b.y1].iter().zip(e).all(|(a, e)| (a - e).abs() < 1e-6);
+    // The dot's box is in the middle column, which maps x to 3x - 50.
+    let b = super::export_art_bounds(&d, "hpgl").unwrap();
+    assert!(near(b, [85.0, 45.0, 115.0, 55.0]), "{b:?}");
+    let own = plot_instance(&mut d, "Dot", Affine::translate((200.0, 0.0)));
+    plot_on_layer(&mut d, own);
+    let b = super::export_art_bounds(&d, "hpgl").unwrap();
+    assert!(near(b, [85.0, 45.0, 255.0, 55.0]), "{b:?}");
+}
+
+/// The copy of a dynamic symbol that an instance's changes are measured on keeps the symbol's
+/// 9-slice guides.
+#[test]
+fn a_plot_of_the_arts_bounds_measures_changed_9_slice_instances_by_their_guides() {
+    use vectorcraft_geom::{Affine, Rect};
+    let mut d = vectorcraft_doc::Document::new(400.0, 400.0);
+    let bar = plot_rect(&mut d, Rect::new(10.0, 40.0, 70.0, 60.0), true);
+    plot_symbol(&mut d, "Bar", vec![bar], false);
+    let frame = plot_rect(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), false);
+    let inner = std::sync::Arc::new(plot_instance(&mut d, "Bar", Affine::IDENTITY));
+    plot_symbol(&mut d, "Panel", vec![frame, inner], true);
+    d.set_symbol_nine_slice("Panel", Some(vectorcraft_doc::SymbolNineSlice::default()));
+    let mut wide = plot_instance(&mut d, "Panel", Affine::scale_non_uniform(2.0, 1.0));
+    wide.extras_mut().symbol_overrides =
+        vec![vectorcraft_doc::SymbolOverride { path: vec![0], fill: Some(vectorcraft_color::Paint::None), ..Default::default() }];
+    plot_on_layer(&mut d, wide);
+    // The bar crosses the left guide and is placed by the middle column's map, x to 3x - 50: it
+    // draws from x -20 to 160.
+    let b = super::export_art_bounds(&d, "hpgl").unwrap();
+    let exact = |b: Rect| [(b.x0, -20.0), (b.y0, 40.0), (b.x1, 160.0), (b.y1, 60.0)].iter().all(|(a, e)| (a - e).abs() < 1e-6);
+    assert!(exact(b), "{b:?}");
+    // The same instance in the art of a symbol without guides.
+    let wide = std::sync::Arc::make_mut(&mut d.layers[0]).children_mut().unwrap().pop().unwrap();
+    plot_symbol(&mut d, "Holder", vec![wide], false);
+    let holder = plot_instance(&mut d, "Holder", Affine::IDENTITY);
+    plot_on_layer(&mut d, holder);
+    let b = super::export_art_bounds(&d, "hpgl").unwrap();
+    assert!(exact(b), "{b:?}");
+}
+
+/// An instance in a dynamic symbol's art, in a group at 0% opacity that an instance of the symbol
+/// brings back to full opacity, is measured with the paint it gives its own symbol's art.
+#[test]
+fn a_plot_of_the_arts_bounds_measures_instances_that_an_instance_brings_back() {
+    use vectorcraft_geom::{Affine, Rect};
+    let mut d = vectorcraft_doc::Document::new(400.0, 400.0);
+    let bare = plot_rect(&mut d, Rect::new(300.0, 300.0, 320.0, 320.0), false);
+    plot_symbol(&mut d, "Inner", vec![bare], true);
+    let mut inner = plot_instance(&mut d, "Inner", Affine::IDENTITY);
+    let black = vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK);
+    inner.extras_mut().symbol_overrides = vec![vectorcraft_doc::SymbolOverride { path: vec![0], fill: Some(black), ..Default::default() }];
+    plot_symbol(&mut d, "Outer", vec![std::sync::Arc::new(inner)], true);
+    std::sync::Arc::make_mut(&mut d.symbols[1].art).opacity = 0.0;
+    let mut outer = plot_instance(&mut d, "Outer", Affine::IDENTITY);
+    outer.extras_mut().symbol_overrides = vec![vectorcraft_doc::SymbolOverride { path: vec![], opacity: Some(1.0), ..Default::default() }];
+    plot_on_layer(&mut d, outer);
+    let b = super::export_art_bounds(&d, "hpgl").expect("the painted rectangle is plotted");
+    assert!((b.x0 - 300.0).abs() < 1e-6 && (b.x1 - 320.0).abs() < 1e-6, "{b:?}");
+}
+
 /// A placed image with a Vector Halftone effect is measured when the effect makes dots, and left
 /// out when it would take more cells than the effect makes.
 #[test]
@@ -388,6 +534,104 @@ fn export_options_are_checked() {
     let p = json!({"format": "hpgl", "origin": "CENTER", "pens": ["#ff0000", "#000000"], "curveTolerance": 10, "sortPaths": true});
     let plot = String::from_utf8(bytes(&s.execute("document.export", &p).unwrap())).unwrap();
     assert_eq!(plot, "IN;PU;SP2;PU-141,141;PD-564,141,-564,564,-141,564,-141,141;PU;SP0;");
+    // The check a dialog runs refuses the same options, and passes the given ones.
+    let doc = s.doc().unwrap().doc.clone();
+    assert!(hpgl::check(&doc, &json!({"pens": ["#ff0000", "red"]})).unwrap_err().contains("`pens`"));
+    assert!(hpgl::check(&doc, &json!({"curveTolerance": 11})).unwrap_err().contains("`curveTolerance`"));
+    assert_eq!(hpgl::check(&doc, &p), Ok(()));
+    // It checks the artboard choice as the export does: an artboard or range past the document's,
+    // a `useArtboards` that isn't true or false, and the art's bounds when no art shows.
+    let mut blank = Session::new();
+    blank.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
+    let blank_doc = blank.doc().unwrap().doc.clone();
+    for (on_blank, p) in [
+        (false, json!({"format": "hpgl", "artboard": 2})),
+        (false, json!({"format": "hpgl", "useArtboards": true, "range": "1-3"})),
+        (false, json!({"format": "hpgl", "artboards": [0, 1]})),
+        (false, json!({"format": "hpgl", "useArtboards": "yes"})),
+        (true, json!({"format": "hpgl", "useArtboards": false})),
+    ] {
+        let (session, d) = if on_blank { (&mut blank, &blank_doc) } else { (&mut s, &doc) };
+        assert!(hpgl::check(d, &p).is_err(), "{p}");
+        assert!(session.execute("document.export", &p).is_err(), "{p}");
+    }
+    // An artboard with no width is refused before the writer refuses it.
+    let mut flat = vectorcraft_doc::Document::clone(&doc);
+    flat.artboards[1].rect = vectorcraft_geom::Rect::new(200.0, 0.0, 200.0, 100.0);
+    assert_eq!(hpgl::check(&flat, &json!({"artboard": 1})).unwrap_err(), hpgl::check(&flat, &json!({"useArtboards": true})).unwrap_err());
+    assert!(hpgl::check(&flat, &json!({"artboard": 1})).unwrap_err().contains("the export region is empty"));
+    assert_eq!(hpgl::check(&flat, &json!({})), Ok(()));
+    // A document with no artboard has nothing to plot on one, or on each.
+    flat.artboards.clear();
+    for p in [json!({}), json!({"useArtboards": true})] {
+        assert!(hpgl::check(&flat, &p).unwrap_err().contains("the document has no artboard"), "{p}");
+    }
+    // An area of the page is a raster export's option: the export refuses it, and so does the check.
+    let rect = json!({"format": "hpgl", "rect": [0, 0, 10, 10]});
+    assert!(s.execute("document.export", &rect).is_err());
+    assert!(hpgl::check(&doc, &rect).unwrap_err().contains("rect applies to raster formats"));
+    assert_eq!(hpgl::check(&doc, &json!({"useArtboards": true, "range": "2"})), Ok(()));
+    assert_eq!(hpgl::check(&doc, &json!({"useArtboards": false})), Ok(()));
+}
+
+/// The pens an export without a pen table uses: one per color the plotted art draws in, in the
+/// order it first draws in each, over the artboards or the art's bounds the export plots.
+#[test]
+fn automatic_pens_list_the_plotted_art_s_colors_in_pen_order() {
+    let s = two_boards();
+    let doc = &s.doc().unwrap().doc;
+    let pens = |p: Value| hpgl::automatic_pens(doc, &p).unwrap();
+    assert_eq!(pens(json!({})), ["#000000"], "the first artboard");
+    assert_eq!(pens(json!({"artboard": 1})), ["#ff0000"]);
+    assert_eq!(pens(json!({"useArtboards": true})), ["#000000", "#ff0000"], "one numbering for every file");
+    assert_eq!(pens(json!({"useArtboards": false})), ["#000000", "#ff0000"], "the art's bounds");
+    // The pens given and the path order are not the export's own pens.
+    assert_eq!(pens(json!({"useArtboards": true, "pens": ["#00ff00"], "sortPaths": true})), ["#000000", "#ff0000"]);
+    // A refused artboard choice or option is an error, not an empty table.
+    assert!(hpgl::automatic_pens(doc, &json!({"artboard": 5})).is_err());
+    assert!(hpgl::automatic_pens(doc, &json!({"curveTolerance": 20})).unwrap_err().contains("`curveTolerance`"));
+    // So is an area of the page, which the export and the check refuse for HP-GL.
+    assert!(hpgl::automatic_pens(doc, &json!({"rect": [0, 0, 10, 10]})).unwrap_err().contains("rect applies to raster formats"));
+
+    // Art outside every artboard is plotted only with the art's bounds.
+    let mut off = Session::new();
+    off.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
+    off.execute("paint.setFill", &json!({"none": true})).unwrap();
+    off.execute("paint.setStroke", &json!({"color": "#0000ff"})).unwrap();
+    off.execute("shape.rectangle", &json!({"x": 500, "y": 500, "width": 30, "height": 30})).unwrap();
+    let doc = &off.doc().unwrap().doc;
+    assert_eq!(hpgl::automatic_pens(doc, &json!({})), Ok(vec![]));
+    assert_eq!(hpgl::automatic_pens(doc, &json!({"useArtboards": false})), Ok(vec!["#0000ff".to_string()]));
+}
+
+/// A placed document opened with only its preview is plotted with its file's art (the plot reads
+/// the file), so the check and the pens of a dialog measure that art as the export does.
+#[test]
+fn a_placed_document_s_pens_are_those_of_its_file_s_art() {
+    use crate::tests_links::{Folder, open, save, session, write};
+    let dir = Folder::new("hpgl-placed");
+    let src = dir.file("logo.vectorcraft");
+    let mut d = vectorcraft_doc::Document::new(100.0, 50.0);
+    let layer = d.layers[0].id;
+    let id = d.alloc_id();
+    let red = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb8(255, 0, 0));
+    let look = vectorcraft_doc::Appearance::basic(red, vectorcraft_color::Paint::None, 0.0);
+    let rect = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, 100.0, 50.0));
+    d.insert(Some(layer), 0, vectorcraft_doc::Node::path(id, rect, look)).unwrap();
+    write(&src, &vectorcraft_format::save_file(&d));
+    let mut s = session();
+    s.execute("file.place", &json!({"path": src, "at": [200, 150]})).unwrap();
+    let poster = dir.file("poster.vectorcraft");
+    save(&mut s, &poster);
+    open(&mut s, &poster);
+    let doc = &s.doc().unwrap().doc;
+    assert!(doc.images.values().any(vectorcraft_doc::ImageBlob::is_proxy), "opened with the preview only");
+    for p in [json!({}), json!({"useArtboards": false})] {
+        assert_eq!(hpgl::automatic_pens(doc, &p), Ok(vec!["#ff0000".to_string()]), "{p}");
+        assert_eq!(hpgl::check(doc, &p), Ok(()), "{p}");
+    }
+    let plot = String::from_utf8(bytes(&s.execute("document.export", &json!({"format": "hpgl"})).unwrap())).unwrap();
+    assert!(plot.contains("SP1;") && plot.contains("PD"), "{plot}");
 }
 
 /// `insideFirst` draws the square inside the other one first, though it was made last.

@@ -300,12 +300,12 @@ fn word_width_measures_across_a_soft_hyphen_inside_a_no_break_run() {
     for g in &mut glyphs {
         g.sx = 0.001;
     }
-    let plain = breaking::word_width(&glyphs, 0, &[], Kinsoku::None);
+    let plain = breaking::word_width(&glyphs, 0, &[], Kinsoku::None, Burasagari::None);
     assert!(plain < 30.0, "without the mark the word ends at the soft hyphen: {plain}");
     for g in &mut glyphs {
         g.no_break = true;
     }
-    let marked = breaking::word_width(&glyphs, 0, &[], Kinsoku::None);
+    let marked = breaking::word_width(&glyphs, 0, &[], Kinsoku::None, Burasagari::None);
     assert!((marked - 30.0).abs() < 1e-9, "the marked run is measured whole: {marked}");
 }
 
@@ -317,7 +317,7 @@ fn word_width_stops_at_a_forced_line_break() {
     for g in &mut glyphs {
         g.no_break = true;
     }
-    let marked = breaking::word_width(&glyphs, 0, &[], Kinsoku::None);
+    let marked = breaking::word_width(&glyphs, 0, &[], Kinsoku::None, Burasagari::None);
     assert!((marked - 10.0).abs() < 1e-9, "the marked run ends at the forced line break: {marked}");
 
     let mut glyphs = synthetic_glyphs(&[(0, 1, 10.0, 'A'), (1, 2, 0.0, '\u{00ad}'), (3, 3, 5.0, '\u{2028}'), (6, 1, 10.0, 'B')]);
@@ -325,12 +325,12 @@ fn word_width_stops_at_a_forced_line_break() {
     for g in &mut glyphs {
         g.sx = 0.001;
     }
-    let plain = breaking::word_width(&glyphs, 0, &[], Kinsoku::None);
+    let plain = breaking::word_width(&glyphs, 0, &[], Kinsoku::None, Burasagari::None);
     assert!((plain - 10.0).abs() < 1e-9, "no hyphen before the forced line break: {plain}");
     for g in &mut glyphs {
         g.no_break = true;
     }
-    let marked = breaking::word_width(&glyphs, 0, &[], Kinsoku::None);
+    let marked = breaking::word_width(&glyphs, 0, &[], Kinsoku::None, Burasagari::None);
     assert!((marked - 10.0).abs() < 1e-9, "the marked run ends at the forced line break: {marked}");
 }
 
@@ -475,6 +475,95 @@ fn a_tabbed_line_ends_at_the_latest_break_that_fits_as_drawn() {
     let ended =
         break_line(text, &glyphs, 0, 100.0, &[], 0.0, None, Burasagari::None, Kinsoku::None, KinsokuShoriType::PushOutOnly, false, false, &[], fits);
     assert_eq!(ended, (8, false));
+}
+
+/// A tabbed line measured as drawn hangs a burasagari full stop that overflows only when the stop
+/// is drawn at the line's right end (last in the visual order of the line's levels, whatever its
+/// own level) and the line before it fits as drawn with no line-end trim on its last glyph;
+/// otherwise it ends at the latest legal break that fits as drawn.
+#[test]
+fn a_tabbed_burasagari_mark_hangs_only_at_the_drawn_end_of_a_fitting_line() {
+    let text = "a \t\u{05D0} 漢。";
+    let specs: Vec<_> = text.char_indices().map(|(byte, ch)| (byte, ch.len_utf8(), 10.0, ch)).collect();
+    let mut glyphs = synthetic_glyphs(&specs);
+    glyphs[3].level = unicode_bidi::Level::rtl();
+    // The text without its tab is 60 pt wide at 。 (glyph 6), past 55 pt; kinsoku keeps 。 off a line
+    // start, so the latest legal break before it ends the line before 漢 (glyph 5).
+    let end = |glyphs: &[SGlyph], line_end: &[f64], fits: Option<&dyn Fn(usize, bool) -> bool>| {
+        break_line(
+            text,
+            glyphs,
+            0,
+            55.0,
+            &[],
+            0.0,
+            None,
+            Burasagari::Standard,
+            Kinsoku::Hard,
+            KinsokuShoriType::PushOutOnly,
+            false,
+            false,
+            line_end,
+            fits,
+        )
+    };
+    let all_fit = |_end: usize, _hyphenated: bool| true;
+    assert_eq!(end(&glyphs, &[], Some(&all_fit)), (7, false), "drawn at the right end of a line that fits: 。 hangs");
+    let body_too_wide = |end: usize, _hyphenated: bool| end <= 5;
+    assert_eq!(end(&glyphs, &[], Some(&body_too_wide)), (5, false), "the line before 。 is too wide as drawn");
+    let mut trimmed = vec![0.0; glyphs.len()];
+    trimmed[5] = 2.0;
+    assert_eq!(end(&glyphs, &trimmed, Some(&all_fit)), (5, false), "the line before 。 fits only with 漢 trimmed");
+    let level = |n: u8| unicode_bidi::Level::new(n).unwrap_or_else(|_| panic!("level {n}"));
+    glyphs[6].level = level(2);
+    assert_eq!(end(&glyphs, &[], Some(&all_fit)), (7, false), "。 set left to right in right-to-left text is drawn at the right end");
+    glyphs[6].level = level(1);
+    assert_eq!(end(&glyphs, &[], Some(&all_fit)), (7, false), "。 alone right to left after 漢 is drawn at the right end");
+    glyphs[5].level = level(1);
+    assert_eq!(end(&glyphs, &[], Some(&all_fit)), (5, false), "。 right to left after 漢 in the same run is drawn inside the line");
+    glyphs[6].level = level(2);
+    assert_eq!(end(&glyphs, &[], Some(&all_fit)), (5, false), "。 left to right inside the right-to-left run of 漢 is drawn inside the line");
+}
+
+/// A burasagari full stop that No Break keeps with the character after it does not hang: the line
+/// would end with that character, which is drawn inside the line, so it ends at an earlier break.
+#[test]
+fn a_burasagari_mark_kept_with_the_next_character_does_not_hang() {
+    let text = "漢漢。漢";
+    let specs: Vec<_> = text.char_indices().map(|(byte, ch)| (byte, ch.len_utf8(), 10.0, ch)).collect();
+    let mut glyphs = synthetic_glyphs(&specs);
+    let end = |glyphs: &[SGlyph]| {
+        break_line(text, glyphs, 0, 25.0, &[], 0.0, None, Burasagari::Standard, Kinsoku::Hard, KinsokuShoriType::PushOutOnly, false, false, &[], None)
+    };
+    assert_eq!(end(&glyphs), (3, false), "alone, 。 overflows by 5 pt and hangs");
+    glyphs[2].no_break = true;
+    glyphs[3].no_break = true;
+    assert_eq!(end(&glyphs), (1, false), "kept with the 漢 after it, 。 does not end the line");
+}
+
+/// A line with a tab and right-to-left text pushes a closing bracket out with every Kinsoku Shori
+/// Type, where the same widths without them push it in.
+#[test]
+fn push_in_leaves_a_tabbed_right_to_left_line_to_push_out() {
+    use vectorcraft_doc::{TabAlign, TabStop};
+    let tabbed = "\u{05D0}\t一二三四五」六";
+    let mut glyphs = full_width(tabbed);
+    glyphs[0].level = unicode_bidi::Level::rtl();
+    glyphs[1].adv = 2.0;
+    let tabs = [TabStop { position: 12.0, align: TabAlign::Left, leader: String::new(), align_on: '.' }];
+    let all_fit = |_end: usize, _hyphenated: bool| true;
+    let fits: Option<&dyn Fn(usize, bool) -> bool> = Some(&all_fit);
+    // 」 (glyph 7) ends 72 pt along, 5 pt past the measure: five gaps close by 1 pt each.
+    let end = |ty| break_line(tabbed, &glyphs, 0, 67.0, &tabs, 0.0, None, Burasagari::None, Kinsoku::Hard, ty, false, false, &[], fits);
+    for ty in [KinsokuShoriType::PushInFirst, KinsokuShoriType::PushOutFirst, KinsokuShoriType::PushOutOnly] {
+        assert_eq!(end(ty), (6, false), "{ty:?}: 五 is pushed out with 」");
+    }
+    let plain = "ax一二三四五」六";
+    let mut glyphs = full_width(plain);
+    glyphs[1].adv = 2.0;
+    let pushed =
+        break_line(plain, &glyphs, 0, 67.0, &[], 0.0, None, Burasagari::None, Kinsoku::Hard, KinsokuShoriType::PushInFirst, false, false, &[], None);
+    assert_eq!(pushed, (8, false), "without the tab and right-to-left text, 」 is pushed in");
 }
 
 /// Past the breaks a tabbed line measures one by one, it ends at the latest break without a hyphen
@@ -1253,8 +1342,8 @@ fn korean_words_break_at_spaces_unless_line_break_anywhere() {
     let cands = candidates(text, &off, None, Kinsoku::Hard);
     assert_eq!(compose(&off, &|_| 50.0, &|_| 0.0, &|_| 0.0, &cands, &[], &params), Some(vec![(4, false), (7, false)]));
     // The first word is measured whole, as the line loop measures it.
-    assert_eq!(breaking::word_width(&off, 0, &[], Kinsoku::Hard), 30.0);
-    assert_eq!(breaking::word_width(&korean(text, true), 0, &[], Kinsoku::Hard), 10.0);
+    assert_eq!(breaking::word_width(&off, 0, &[], Kinsoku::Hard, Burasagari::None), 30.0);
+    assert_eq!(breaking::word_width(&korean(text, true), 0, &[], Kinsoku::Hard, Burasagari::None), 10.0);
     // A word wider than the line still breaks, at the syllable that overflows.
     assert_eq!(greedy(&korean("가나다라마바", false), 25.0), 2);
     // A soft return still ends the line.
@@ -1360,8 +1449,8 @@ fn bunri_kinshi_keeps_jlreq_pairs_in_both_composers() {
     };
     assert_eq!(greedy(&pairs(text, false), 35.0), 3, "off: the line ends between the dashes");
     assert_eq!(greedy(&pairs(text, true), 35.0), 2, "on: both dashes go to the next line");
-    assert_eq!(breaking::word_width(&pairs("——あ", true), 0, &[], Kinsoku::Hard), 20.0);
-    assert_eq!(breaking::word_width(&pairs("——あ", false), 0, &[], Kinsoku::Hard), 10.0);
+    assert_eq!(breaking::word_width(&pairs("——あ", true), 0, &[], Kinsoku::Hard, Burasagari::None), 20.0);
+    assert_eq!(breaking::word_width(&pairs("——あ", false), 0, &[], Kinsoku::Hard, Burasagari::None), 10.0);
     let params = Params { justify_last: false, ragged: true, tolerance: f64::INFINITY, uniform_from: 0, hyphen_limit: 0 };
     let on = pairs("あい——う", true);
     let cands = candidates("あい——う", &on, None, Kinsoku::Hard);
@@ -1409,6 +1498,241 @@ fn bunri_kinshi_progresses_with_an_overlong_pair_and_no_break() {
     let text = "あ〳〵い」";
     assert_eq!(line(text, &pairs(text, false), 0, 46.5, Kinsoku::Hard, PushInFirst), 5);
     assert_eq!(line(text, &pairs(text, true), 0, 46.5, Kinsoku::Hard, PushInFirst), 3);
+}
+
+/// A custom Kinsoku Shori set (Type › Kinsoku Shori Settings…) with these categories.
+fn custom_set(cannot_start: &str, cannot_end: &str, hanging: &str, inseparable: &[&str]) -> vectorcraft_doc::KinsokuSet {
+    let mut set = vectorcraft_doc::KinsokuSet {
+        name: "Custom".into(),
+        cannot_start: cannot_start.chars().collect(),
+        cannot_end: cannot_end.chars().collect(),
+        hanging: hanging.chars().collect(),
+        inseparable: inseparable.iter().map(|s| s.to_string()).collect(),
+    };
+    set.normalize();
+    set
+}
+
+/// New Set from Hard or Soft starts with their characters: a custom set made from either breaks
+/// every line where it does, in both composers, with every Kinsoku Shori Type and with and without
+/// Burasagari, and keeps the same inseparable pairs with Bunri-Kinshi. One made from None is empty.
+#[test]
+fn a_set_made_from_hard_or_soft_breaks_lines_as_they_do() {
+    use KinsokuShoriType::{PushInFirst, PushOutFirst, PushOutOnly};
+    let texts = ["一二三四五六七八九十一二三四五」六", "あカッー々ャ「か」、。（雅）", "あい——う〳〵え……ｶｯｰ", "一二三四(五六)ab\u{201c}c\u{201d}。"];
+    for base in [Kinsoku::Hard, Kinsoku::Soft] {
+        let set = crate::shape::kinsoku_set_from(base, "From");
+        let custom = breaking::KinsokuRules::Custom(&set);
+        for text in texts {
+            let mut built_in = full_width(text);
+            crate::shape::keep_inseparable_pairs(text, &mut built_in);
+            let mut own = full_width(text);
+            crate::shape::keep_inseparable_sequences(text, &mut own, &set.inseparable);
+            let kept = |g: &[SGlyph]| g.iter().map(|g| g.keeps_next).collect::<Vec<_>>();
+            assert_eq!(kept(&built_in), kept(&own), "{base:?} {text}");
+            let ends = |c: Vec<Breakpoint>| c.iter().map(|b| b.end).collect::<Vec<_>>();
+            assert_eq!(ends(candidates(text, &built_in, None, base)), ends(candidates(text, &own, None, custom)), "{base:?} {text}");
+            for ty in [PushInFirst, PushOutFirst, PushOutOnly] {
+                for burasagari in [Burasagari::None, Burasagari::Standard] {
+                    for width in (15..=160).step_by(5).map(f64::from) {
+                        let at = |g: &[SGlyph], k: breaking::KinsokuRules<'_>| {
+                            break_line(text, g, 0, width, &[], 0.0, None, burasagari, k, ty, false, false, &[], None).0
+                        };
+                        assert_eq!(at(&built_in, base.into()), at(&own, custom), "{base:?} {ty:?} {burasagari:?} {width} {text}");
+                    }
+                }
+            }
+        }
+    }
+    let empty = crate::shape::kinsoku_set_from(Kinsoku::None, "Empty");
+    assert!(empty.cannot_start.is_empty() && empty.cannot_end.is_empty() && empty.hanging.is_empty() && empty.inseparable.is_empty());
+}
+
+/// A custom set keeps its own Cannot Start Line characters off a line's start and its Cannot End
+/// Line characters off its end, and lets every other character start or end one: here 四 never
+/// starts a line and 三 never ends one, while 」, which Hard keeps off a line's start, may start
+/// one with an empty set.
+#[test]
+fn a_custom_set_keeps_its_own_characters_off_line_ends() {
+    use KinsokuShoriType::PushOutOnly;
+    let end = |text: &str, width: f64, k: breaking::KinsokuRules<'_>| {
+        break_line(text, &full_width(text), 0, width, &[], 0.0, None, Burasagari::None, k, PushOutOnly, false, false, &[], None).0
+    };
+    let text = "一二三四五六";
+    let start = custom_set("四", "", "", &[]);
+    let finish = custom_set("", "三", "", &[]);
+    let empty = custom_set("", "", "", &[]);
+    assert_eq!(end(text, 35.0, Kinsoku::Hard.into()), 3);
+    assert_eq!(end(text, 35.0, breaking::KinsokuRules::Custom(&start)), 2, "四 does not start the next line");
+    assert_eq!(end(text, 35.0, breaking::KinsokuRules::Custom(&finish)), 2, "三 does not end the line");
+    let bracket = "一二三」四";
+    assert_eq!(end(bracket, 35.0, Kinsoku::Hard.into()), 2, "Hard keeps 」 off the next line's start");
+    assert_eq!(end(bracket, 35.0, breaking::KinsokuRules::Custom(&empty)), 3, "the empty set lets 」 start it");
+    // A space after 三 is not drawn at the end of the line, so a break after it would still end
+    // the line with 三.
+    let spaced = "一二三 四";
+    assert_eq!(end(spaced, 35.0, breaking::KinsokuRules::Custom(&finish)), 2, "三 does not end the line before a space");
+    assert_eq!(end(spaced, 35.0, breaking::KinsokuRules::Custom(&empty)), 4);
+    let ends = candidates(text, &full_width(text), None, breaking::KinsokuRules::Custom(&start)).iter().map(|b| b.end).collect::<Vec<_>>();
+    assert_eq!(ends, [1, 2, 4, 5]);
+}
+
+/// The least room a word needs ([`breaking::word_width`]) runs past spaces where kinsoku allows no
+/// break after them, to the first break [`break_line`] may take: after 「 or a custom set's 三 with
+/// spaces after it, and before a 」 that follows a space. Where the break after the space is
+/// allowed, the word still ends before the space.
+#[test]
+fn word_width_runs_past_spaces_kinsoku_does_not_break_after() {
+    use KinsokuShoriType::PushOutOnly;
+    let finish = custom_set("", "三", "", &[]);
+    let empty = custom_set("", "", "", &[]);
+    for (text, k, word) in [
+        ("「 四五", breaking::KinsokuRules::from(Kinsoku::Hard), 30.0),
+        ("「  四五", Kinsoku::Hard.into(), 40.0),
+        ("a 」二", Kinsoku::Hard.into(), 30.0),
+        ("三 四五", breaking::KinsokuRules::Custom(&finish), 30.0),
+        ("三 四五", breaking::KinsokuRules::Custom(&empty), 10.0),
+        ("一 二三", Kinsoku::Hard.into(), 10.0),
+    ] {
+        let g = full_width(text);
+        assert_eq!(breaking::word_width(&g, 0, &[], k, Burasagari::None), word, "{text}");
+        // In a measure that wide, break_line's first line is that word, drawn without the spaces
+        // at its end.
+        let mut end = break_line(text, &g, 0, word, &[], 0.0, None, Burasagari::None, k, PushOutOnly, false, false, &[], None).0;
+        while end > 0 && g[end - 1].is_space() {
+            end -= 1;
+        }
+        assert_eq!(g[..end].iter().map(|h| h.adv).sum::<f64>(), word, "{text}");
+    }
+    // A No Break run of spaces after 「 longer than the glyphs a word is measured over stops the
+    // measure there.
+    let long: String = std::iter::once('「').chain(std::iter::repeat_n(' ', 2000)).chain(['四']).collect();
+    let mut g = full_width(&long);
+    for h in g.iter_mut().skip(1) {
+        h.no_break = true;
+    }
+    assert_eq!(breaking::word_width(&g, 0, &[], Kinsoku::Hard, Burasagari::None), 10240.0);
+}
+
+/// Soft and a set made from it choose the same composer: small kana and the prolonged sound mark,
+/// which Soft lets start a line, do not send a paragraph that pushes in to the single-line
+/// composer with either, while Hard, which keeps them off a line's start, does.
+#[test]
+fn soft_and_a_set_made_from_it_push_in_the_same_characters() {
+    use KinsokuShoriType::{PushInFirst, PushOutOnly};
+    let glyphs = full_width("あゃいーう");
+    let para = |kinsoku: Kinsoku, own: bool, kinsoku_type: KinsokuShoriType| ParaStyle {
+        kinsoku,
+        kinsoku_set: own.then(|| Arc::new(crate::shape::kinsoku_set_from(kinsoku, "From"))),
+        kinsoku_type,
+        ..ParaStyle::default()
+    };
+    assert!(!flow::may_push_in(&para(Kinsoku::Soft, false, PushInFirst), &glyphs), "built-in Soft");
+    assert!(!flow::may_push_in(&para(Kinsoku::Soft, true, PushInFirst), &glyphs), "a set made from Soft");
+    assert!(flow::may_push_in(&para(Kinsoku::Hard, false, PushInFirst), &glyphs), "built-in Hard");
+    assert!(flow::may_push_in(&para(Kinsoku::Hard, true, PushInFirst), &glyphs), "a set made from Hard");
+    assert!(!flow::may_push_in(&para(Kinsoku::Hard, false, PushOutOnly), &glyphs), "Push Out Only");
+    let bracket = full_width("あい」う");
+    assert!(flow::may_push_in(&para(Kinsoku::Soft, false, PushInFirst), &bracket), "Soft keeps 」 off a line's start");
+}
+
+/// With Burasagari, a custom set hangs its own Hanging Punctuation and not the comma and full stop
+/// the built-in sets hang: 、 hangs outside a full line with Hard and with a set that lists it; with
+/// a set that lists only ! it starts the next line, while ! hangs.
+#[test]
+fn a_custom_set_hangs_its_own_hanging_punctuation() {
+    use KinsokuShoriType::PushOutOnly;
+    let end = |text: &str, k: breaking::KinsokuRules<'_>| {
+        break_line(text, &full_width(text), 0, 30.0, &[], 0.0, None, Burasagari::Standard, k, PushOutOnly, false, false, &[], None).0
+    };
+    let comma = custom_set("", "", "、", &[]);
+    let bang = custom_set("", "", "!", &[]);
+    assert_eq!(end("一二三、四", Kinsoku::Hard.into()), 4);
+    assert_eq!(end("一二三、四", breaking::KinsokuRules::Custom(&comma)), 4, "、 hangs");
+    assert_eq!(end("一二三、四", breaking::KinsokuRules::Custom(&bang)), 3, "、 does not hang");
+    assert_eq!(end("一二三!四", breaking::KinsokuRules::Custom(&bang)), 4, "! hangs");
+    // In a wider line where ! fits, the line still ends after it.
+    let text = "一二三!四";
+    let wide = |b: Burasagari| {
+        break_line(text, &full_width(text), 0, 40.0, &[], 0.0, None, b, breaking::KinsokuRules::Custom(&bang), PushOutOnly, false, false, &[], None).0
+    };
+    assert_eq!(wide(Burasagari::Standard), 4, "! fits and ends the line");
+    assert_eq!(wide(Burasagari::None), 3, "without Burasagari ! does not hang, and no line ends after it");
+    // The first word, which places a line in a frame of uneven width, ends after ! as the line may.
+    let word = |b: Burasagari| breaking::word_width(&full_width("AB!CD"), 0, &[], breaking::KinsokuRules::Custom(&bang), b);
+    assert_eq!(word(Burasagari::Standard), 30.0);
+    assert_eq!(word(Burasagari::None), 50.0);
+    // A hanging character that starts an inseparable sequence kept with Bunri-Kinshi does not hang
+    // the rest of the sequence with it: the sequence goes to the next line.
+    let joined = custom_set("", "", "!", &["!あ"]);
+    let text = "一二三!あい";
+    let mut g = full_width(text);
+    crate::shape::keep_inseparable_sequences(text, &mut g, &joined.inseparable);
+    let rules = breaking::KinsokuRules::Custom(&joined);
+    assert_eq!(break_line(text, &g, 0, 30.0, &[], 0.0, None, Burasagari::Standard, rules, PushOutOnly, false, false, &[], None).0, 3);
+    // A hanging character drawn with two glyphs does not hang: the line's geometry hangs only one
+    // glyph, so the other would stay past the measure. 三 goes to the next line with it.
+    let text = "一二三、四";
+    let mut g = full_width(text);
+    g[3].adv = 5.0;
+    g.insert(3, g[3].clone());
+    assert_eq!(break_line(text, &g, 0, 30.0, &[], 0.0, None, Burasagari::Standard, Kinsoku::Hard, PushOutOnly, false, false, &[], None).0, 2);
+    let g = full_width("、!");
+    assert!(breaking::hangs(&g[1], breaking::KinsokuRules::Custom(&bang)) && !breaking::hangs(&g[0], breaking::KinsokuRules::Custom(&bang)));
+}
+
+/// Bunri-Kinshi with a custom set: a line never breaks inside one of its inseparable sequences,
+/// which may be longer than a pair and may overlap, and the built-in pairs are kept only when the
+/// set lists them.
+#[test]
+fn a_custom_set_keeps_its_inseparable_sequences_on_one_line() {
+    let marked = |text: &str, sequences: &[&str]| {
+        let mut g = full_width(text);
+        crate::shape::keep_inseparable_sequences(text, &mut g, &sequences.iter().map(|s| s.to_string()).collect::<Vec<_>>());
+        g.iter().map(|g| g.keeps_next).collect::<Vec<_>>()
+    };
+    assert_eq!(marked("かあいうえ", &["あいう"]), [false, true, true, false, false]);
+    assert_eq!(marked("あいうえお", &["あい", "いう"]), [true, true, false, false, false], "overlapping sequences chain");
+    assert_eq!(marked("あ——い", &["あい"]), [false; 4], "the built-in pairs are not kept by a set without them");
+    assert_eq!(marked("", &["あい"]), Vec::<bool>::new());
+    assert_eq!(marked("あいうえお", &["あい", "あいうえ"]), [true, true, true, false, false], "the longer of two sequences that start alike");
+    assert_eq!(marked("あいう", &["あい", "あいか"]), [true, false, false], "the shorter where only it is found");
+    // A set at the category limit whose sequences all start with one character.
+    let many: Vec<String> = (0..2047u32).filter_map(|k| char::from_u32(0x4E00 + k)).map(|c| ['あ', c].iter().collect()).collect();
+    let many: Vec<&str> = many.iter().map(String::as_str).chain(["あい"]).collect();
+    assert_eq!(marked("あいあ一う", &many), [true, false, true, false, false]);
+    let text = "かあいうえ";
+    let set = custom_set("", "", "", &["あいう"]);
+    let mut g = full_width(text);
+    crate::shape::keep_inseparable_sequences(text, &mut g, &set.inseparable);
+    let ends = candidates(text, &g, None, breaking::KinsokuRules::Custom(&set)).iter().map(|b| b.end).collect::<Vec<_>>();
+    assert_eq!(ends, [1, 4]);
+}
+
+/// Bunri-Kinshi with a custom set compares at most 15 texts with the set's sequences for each
+/// character of a paragraph, however many sequences start with one character: 2048 sequences of
+/// 2 characters cost one lookup at each place, 256 of 16 characters cost 15, and a sequence longer
+/// than a set holds is not looked for.
+#[test]
+fn inseparable_sequences_cost_a_bounded_number_of_lookups() {
+    let lookups = |text: &str, sequences: &[String]| {
+        let mut g = full_width(text);
+        crate::shape::SEQUENCE_LOOKUPS.with(|n| n.set(0));
+        crate::shape::keep_inseparable_sequences(text, &mut g, sequences);
+        (crate::shape::SEQUENCE_LOOKUPS.with(std::cell::Cell::get), g.iter().filter(|g| g.keeps_next).count())
+    };
+    // A place n characters from the paragraph's end looks up min(n, 16) - 1 texts.
+    let cost = |chars: usize, longest: usize| (1..=chars).map(|n| n.min(longest) - 1).sum::<usize>();
+    let text = "あ".repeat(1000);
+    let pairs: Vec<String> = (0..2048u32).filter_map(|k| char::from_u32(0x4E00 + k)).map(|c| ['あ', c].iter().collect()).collect();
+    assert_eq!(lookups(&text, &pairs), (999, 0));
+    let long: Vec<String> = (0..256u32).filter_map(|k| char::from_u32(0x4E00 + k)).map(|c| format!("{}{c}", "あ".repeat(15))).collect();
+    assert_eq!(lookups(&text, &long), (cost(1000, 16), 0));
+    assert!(cost(1000, 16) <= 1000 * 15);
+    let mut found = long.clone();
+    found.push("あ".repeat(16));
+    assert_eq!(lookups(&"あ".repeat(16), &found), (cost(16, 16), 15));
+    assert_eq!(lookups(&"あ".repeat(17), &["あ".repeat(17)]), (cost(17, 16), 0), "17 characters are never found");
 }
 
 /// Justification adds no gap between two glyphs of one warichu block, whichever of them is drawn
